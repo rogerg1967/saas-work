@@ -19,6 +19,11 @@ import { useAuth } from "@/contexts/AuthContext"
 type RegisterForm = {
   email: string
   password: string
+  name: string
+  organization: {
+    name: string
+    industry: string
+  }
 }
 
 export function Register() {
@@ -26,13 +31,23 @@ export function Register() {
   const { toast } = useToast()
   const { register: registerUser } = useAuth()
   const navigate = useNavigate()
-  const { register, handleSubmit } = useForm<RegisterForm>()
+  const { register, handleSubmit } = useForm<RegisterForm>({
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      organization: {
+        name: "",
+        industry: ""
+      }
+    }
+  })
 
   const onSubmit = async (data: RegisterForm) => {
     console.log("Form submitted with data:", JSON.stringify(data))
     try {
       setLoading(true)
-      await registerUser(data); // Pass the complete form data object
+      await registerUser(data)
       toast({
         title: "Success",
         description: "Account created successfully",
@@ -77,7 +92,39 @@ export function Register() {
                 {...register("password", { required: true })}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <div className="space-y-2">
+              <Label htmlFor="name">Your Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Enter your full name"
+                {...register("name", { required: true })}
+              />
+            </div>
+
+            <div className="pt-2 border-t">
+              <h3 className="text-lg font-medium mb-3">Organization Details</h3>
+              <div className="space-y-2">
+                <Label htmlFor="orgName">Organization Name</Label>
+                <Input
+                  id="orgName"
+                  type="text"
+                  placeholder="Enter your organization name"
+                  {...register("organization.name", { required: true })}
+                />
+              </div>
+              <div className="space-y-2 mt-2">
+                <Label htmlFor="industry">Industry</Label>
+                <Input
+                  id="industry"
+                  type="text"
+                  placeholder="Enter your industry"
+                  {...register("organization.industry")}
+                />
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full mt-4" disabled={loading}>
               {loading ? (
                 "Loading..."
               ) : (

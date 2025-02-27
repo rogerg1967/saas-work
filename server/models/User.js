@@ -43,6 +43,19 @@ const schema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  subscriptionStatus: {
+    type: String,
+    enum: ['none', 'pending', 'active', 'cancelled', 'expired'],
+    default: 'none',
+  },
+  subscriptionId: {
+    type: String,
+    default: null,
+  },
+  paymentVerified: {
+    type: Boolean,
+    default: false,
+  },
   refreshToken: {
     type: String,
     unique: true,

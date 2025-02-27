@@ -1,39 +1,44 @@
 const jwt = require('jsonwebtoken');
 
 const generateAccessToken = (user) => {
-  const payload = {
-    sub: user._id,
-    role: user.role,
-    org: user.organizationId
-  };
-  
-  console.log(`Generating access token for user ${user._id} with role ${user.role}`);
-  
   try {
-    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '15m' });
+    console.log(`Generating access token for user: ${user.email}`);
+    const token = jwt.sign(
+      {
+        sub: user._id,
+        email: user.email,
+        role: user.role,
+        organizationId: user.organizationId || null
+      },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: '15m' }
+    );
+    return token;
   } catch (error) {
-    console.error(`Error generating access token: ${error.message}`, error);
+    console.error(`Error generating access token: ${error.message}`);
     throw new Error(`Failed to generate access token: ${error.message}`);
   }
 };
 
 const generateRefreshToken = (user) => {
-  const payload = {
-    sub: user._id,
-    role: user.role
-  };
-  
-  console.log(`Generating refresh token for user ${user._id}`);
-  
   try {
-    return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '30d' });
+    console.log(`Generating refresh token for user: ${user.email}`);
+    const token = jwt.sign(
+      {
+        sub: user._id,
+        role: user.role
+      },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: '30d' }
+    );
+    return token;
   } catch (error) {
-    console.error(`Error generating refresh token: ${error.message}`, error);
+    console.error(`Error generating refresh token: ${error.message}`);
     throw new Error(`Failed to generate refresh token: ${error.message}`);
   }
 };
 
 module.exports = {
   generateAccessToken,
-  generateRefreshToken
+  generateRefreshToken,
 };

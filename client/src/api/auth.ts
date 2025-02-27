@@ -5,11 +5,16 @@ interface LoginData {
   password: string;
 }
 
+interface Organization {
+  name: string;
+  industry?: string;
+}
+
 interface RegisterData {
   email: string;
   password: string;
   name?: string;
-  organizationId?: string;
+  organization?: Organization;
   role?: 'admin' | 'organization_manager' | 'team_member';
 }
 
@@ -25,6 +30,12 @@ interface AuthResponse {
       isActive: boolean;
       createdAt: string;
       lastLoginAt: string;
+    };
+    organization?: {
+      _id: string;
+      name: string;
+      industry: string;
+      status: string;
     };
     accessToken: string;
     refreshToken: string;
@@ -55,8 +66,14 @@ export const login = async (data: LoginData): Promise<AuthResponse> => {
 
 // Description: Register a new user
 // Endpoint: POST /api/auth/register
-// Request: { email: string, password: string, name?: string, organizationId?: string, role?: string }
-// Response: { success: boolean, data: { user: User, accessToken: string, refreshToken: string } }
+// Request: {
+//   email: string,
+//   password: string,
+//   name?: string,
+//   organization?: { name: string, industry?: string },
+//   role?: string
+// }
+// Response: { success: boolean, data: { user: User, organization?: Organization, accessToken: string, refreshToken: string } }
 export const register = async (data: RegisterData): Promise<AuthResponse> => {
   try {
     // Ensure data is an object with email and password

@@ -83,7 +83,7 @@ class UserService {
     }
   }
 
-  static async create({ email, password, name = '', organizationId = null, role = 'team_member' }) {
+  static async create({ email, password, name = '', organizationId = null, role = 'team_member', subscriptionStatus = 'none', paymentVerified = false }) {
     if (!email) throw new Error('Email is required');
     if (!password) throw new Error('Password is required');
 
@@ -103,6 +103,8 @@ class UserService {
         name,
         organizationId,
         role,
+        subscriptionStatus,
+        paymentVerified
       });
 
       await user.save();

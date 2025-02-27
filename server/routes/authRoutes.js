@@ -1,5 +1,6 @@
 const express = require('express');
 const UserService = require('../services/userService.js');
+const OrganizationService = require('../services/organizationService.js');
 const { requireUser } = require('./middleware/auth.js');
 const { generateAccessToken, generateRefreshToken } = require('../utils/auth.js');
 const jwt = require('jsonwebtoken');
@@ -36,6 +37,8 @@ router.post('/login', async (req, res) => {
             role: user.role,
             organizationId: user.organizationId,
             isActive: user.isActive,
+            subscriptionStatus: user.subscriptionStatus,
+            paymentVerified: user.paymentVerified,
             createdAt: user.createdAt,
             lastLoginAt: user.lastLoginAt
           },
@@ -56,7 +59,7 @@ router.post('/register', async (req, res) => {
   try {
     console.log('Registration request received with body:', JSON.stringify(req.body));
 
-    const { email, password, name, organizationId, role } = req.body;
+    const { email, password, name, organization, role } = req.body;
 
     // Validate required fields
     if (!email || !password) {
@@ -64,15 +67,37 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
+    // Check if organization info was provided
+    let createdOrganization = null;
+    let assignedRole = role || 'team_member';
+
+    if (organization && organization.name) {
+      try {
+        createdOrganization = await OrganizationService.create({
+          name: organization.name,
+          industry: organization.industry || ''
+        });
+
+        // If organization is created, user becomes organization_manager by default
+        assignedRole = 'organization_manager';
+        console.log(`Created organization: ${createdOrganization.name} with ID: ${createdOrganization._id}`);
+      } catch (orgError) {
+        console.error(`Failed to create organization: ${orgError.message}`);
+        return res.status(400).json({ error: `Organization creation failed: ${orgError.message}` });
+      }
+    }
+
     // Log what we're trying to create
-    console.log(`Attempting to create user with email: ${email}, name: ${name || ''}, organizationId: ${organizationId || 'null'}, role: ${role || 'team_member'}`);
+    console.log(`Attempting to create user with email: ${email}, name: ${name || ''}, organizationId: ${createdOrganization?._id || 'null'}, role: ${assignedRole}`);
 
     const user = await UserService.create({
       email,
       password,
       name: name || '',
-      organizationId,
-      role: role || 'team_member' // Default role if not provided
+      organizationId: createdOrganization?._id,
+      role: assignedRole,
+      subscriptionStatus: 'none',
+      paymentVerified: false
     });
 
     // Generate tokens
@@ -85,7 +110,7 @@ router.post('/register', async (req, res) => {
 
     console.log(`User registered successfully with ID: ${user._id}`);
 
-    // Return user data along with tokens
+    // Return user data along with organization and tokens
     return res.status(201).json({
       success: true,
       data: {
@@ -96,9 +121,17 @@ router.post('/register', async (req, res) => {
           role: user.role,
           organizationId: user.organizationId,
           isActive: user.isActive,
+          subscriptionStatus: user.subscriptionStatus,
+          paymentVerified: user.paymentVerified,
           createdAt: user.createdAt,
           lastLoginAt: user.lastLoginAt
         },
+        organization: createdOrganization ? {
+          _id: createdOrganization._id,
+          name: createdOrganization.name,
+          industry: createdOrganization.industry,
+          status: createdOrganization.status
+        } : undefined,
         accessToken,
         refreshToken
       }
@@ -217,10 +250,31 @@ router.post('/refresh', async (req, res) => {
 
 router.get('/me', requireUser, async (req, res) => {
   try {
+    // Get fresh user data to include subscription status
+    const user = await UserService.get(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
     return res.status(200).json({
       success: true,
       data: {
-        user: req.user
+        user: {
+          _id: user._id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          organizationId: user.organizationId,
+          isActive: user.isActive,
+          subscriptionStatus: user.subscriptionStatus,
+          paymentVerified: user.paymentVerified,
+          createdAt: user.createdAt,
+          lastLoginAt: user.lastLoginAt
+        }
       }
     });
   } catch (error) {

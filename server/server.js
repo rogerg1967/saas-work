@@ -6,6 +6,8 @@ const session = require("express-session");
 const MongoStore = require('connect-mongo');
 const basicRoutes = require("./routes/index");
 const authRoutes = require("./routes/authRoutes");
+const subscriptionRoutes = require("./routes/subscriptionRoutes");
+const stripeWebhooks = require("./routes/stripeWebhooks");
 const { connectDB } = require("./config/database");
 const cors = require("cors");
 
@@ -22,6 +24,11 @@ app.enable('json spaces');
 app.enable('strict routing');
 
 app.use(cors({}));
+
+// Raw body parser for Stripe webhooks
+app.use('/api/stripe/webhook', express.raw({type: 'application/json'}));
+
+// Regular parsers for other routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -37,6 +44,10 @@ app.on("error", (error) => {
 app.use(basicRoutes);
 // Authentication Routes
 app.use('/api/auth', authRoutes);
+// Subscription Routes
+app.use('/api/subscription', subscriptionRoutes);
+// Stripe Webhook Routes
+app.use('/api/stripe', stripeWebhooks);
 
 // If no routes handled the request, it's a 404
 app.use((req, res, next) => {
