@@ -49,7 +49,23 @@ interface AuthResponse {
 // Response: { success: boolean, data: { user: User, accessToken: string, refreshToken: string } }
 export const login = async (data: LoginData): Promise<AuthResponse> => {
   try {
-    const response = await api.post('/api/auth/login', data);
+    // Make sure data is properly structured
+    if (!data || typeof data !== 'object') {
+      console.error('Invalid login data format:', data);
+      throw new Error('Invalid login data format');
+    }
+
+    if (!data.email || !data.password) {
+      console.error('Missing login credentials:', { email: !!data.email, password: !!data.password });
+      throw new Error('Email and password are required');
+    }
+
+    console.log('Request: post /api/auth/login', data.email);
+
+    const response = await api.post('/api/auth/login', {
+      email: data.email,
+      password: data.password
+    });
 
     // Store tokens in localStorage
     if (response.data.success) {
@@ -59,7 +75,7 @@ export const login = async (data: LoginData): Promise<AuthResponse> => {
 
     return response.data;
   } catch (error: any) {
-    console.error(error);
+    console.error('Response error:', error.response?.status, error.response?.data?.message || 'There was an error serving your request.');
     throw new Error(error?.response?.data?.error || error.message);
   }
 };
