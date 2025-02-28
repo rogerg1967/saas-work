@@ -29,22 +29,32 @@ export function Login() {
   const { register, handleSubmit } = useForm<LoginForm>()
 
   const onSubmit = async (data: LoginForm) => {
+    setLoading(true);
     try {
-      setLoading(true)
-      await login(data.email, data.password);
-      toast({
-        title: "Success",
-        description: "Logged in successfully",
-      })
-      navigate("/dashboard") // Changed from "/" to "/dashboard"
+      // Add a console.log to track login attempt
+      console.log("Login attempt for:", data.email);
+
+      // Call login function and store the result
+      const loginSuccessful = await login(data.email, data.password);
+
+      // Only show success and redirect if login was actually successful
+      if (loginSuccessful) {
+        toast({
+          title: "Success",
+          description: "Logged in successfully",
+        });
+        navigate("/dashboard");
+      }
+      // No need for an else block here as the login function already shows error messages
     } catch (error) {
+      console.error("Login submission error:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error?.message,
-      })
+        description: error.message || "An error occurred during login",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 

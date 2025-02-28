@@ -17,11 +17,15 @@ router.post('/login', async (req, res) => {
   }
 
   try {
+    console.log(`Authenticating user with email: ${email}`);
     const user = await UserService.authenticateWithPassword(email, password);
 
     if (user) {
+      console.log(`Authentication successful for user: ${email}`);
       const accessToken = generateAccessToken(user);
+      console.log(`Generated access token for user: ${email}`);
       const refreshToken = generateRefreshToken(user);
+      console.log(`Generated refresh token for user: ${email}`);
 
       user.refreshToken = refreshToken;
       await user.save();
@@ -47,10 +51,11 @@ router.post('/login', async (req, res) => {
         }
       });
     } else {
+      console.log(`Authentication failed: Invalid credentials for ${email}`);
       return sendError('Email or password is incorrect');
     }
   } catch (error) {
-    console.error(`Login error: ${error.message}`);
+    console.error(`Login error: ${error.message}`, error);
     return res.status(500).json({ error: `Login error: ${error.message}` });
   }
 });
@@ -67,12 +72,20 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
+    // Check if user already exists
+    const existingUser = await UserService.getByEmail(email);
+    if (existingUser) {
+      console.log(`Registration failed: Email ${email} already in use`);
+      return res.status(400).json({ error: 'Email already in use' });
+    }
+
     // Check if organization info was provided
     let createdOrganization = null;
     let assignedRole = role || 'team_member';
 
     if (organization && organization.name) {
       try {
+        console.log(`Creating new organization: ${organization.name}`);
         createdOrganization = await OrganizationService.create({
           name: organization.name,
           industry: organization.industry || ''
@@ -80,9 +93,10 @@ router.post('/register', async (req, res) => {
 
         // If organization is created, user becomes organization_manager by default
         assignedRole = 'organization_manager';
+        console.log(`Organization "${organization.name}" created successfully with ID: ${createdOrganization._id}`);
         console.log(`Created organization: ${createdOrganization.name} with ID: ${createdOrganization._id}`);
       } catch (orgError) {
-        console.error(`Failed to create organization: ${orgError.message}`);
+        console.error(`Failed to create organization: ${orgError.message}`, orgError);
         return res.status(400).json({ error: `Organization creation failed: ${orgError.message}` });
       }
     }
@@ -90,6 +104,7 @@ router.post('/register', async (req, res) => {
     // Log what we're trying to create
     console.log(`Attempting to create user with email: ${email}, name: ${name || ''}, organizationId: ${createdOrganization?._id || 'null'}, role: ${assignedRole}`);
 
+    console.log(`Creating new user with email: ${email}`);
     const user = await UserService.create({
       email,
       password,
@@ -100,8 +115,13 @@ router.post('/register', async (req, res) => {
       paymentVerified: false
     });
 
+    console.log(`Fetching user with email: ${email}`);
+    console.log(`User ${email} created successfully`);
+
     // Generate tokens
+    console.log(`Generating access token for user: ${email}`);
     const accessToken = generateAccessToken(user);
+    console.log(`Generating refresh token for user: ${email}`);
     const refreshToken = generateRefreshToken(user);
 
     // Update user with refresh token
@@ -137,7 +157,7 @@ router.post('/register', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(`Registration error: ${error.message}`);
+    console.error(`Registration error: ${error.message}`, error);
     return res.status(400).json({ error: error.message });
   }
 });
@@ -178,7 +198,7 @@ router.post('/logout', async (req, res) => {
       message: 'User logged out successfully.'
     });
   } catch (error) {
-    console.error(`Logout error: ${error.message}`);
+    console.error(`Logout error: ${error.message}`, error);
     return res.status(500).json({ error: error.message });
   }
 });
@@ -232,7 +252,7 @@ router.post('/refresh', async (req, res) => {
     });
 
   } catch (error) {
-    console.error(`Token refresh error: ${error.message}`);
+    console.error(`Token refresh error: ${error.message}`, error);
 
     if (error.name === 'TokenExpiredError') {
       return res.status(403).json({
@@ -278,7 +298,7 @@ router.get('/me', requireUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(`Get user profile error: ${error.message}`);
+    console.error(`Get user profile error: ${error.message}`, error);
     return res.status(500).json({ error: error.message });
   }
 });

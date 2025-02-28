@@ -10,15 +10,20 @@ interface Organization {
   industry?: string;
 }
 
-interface RegisterData {
+// Define interface for register data with organization details
+export interface RegisterData {
   email: string;
   password: string;
   name?: string;
-  organization?: Organization;
+  organization?: {
+    name: string;
+    industry: string;
+  };
   role?: 'admin' | 'organization_manager' | 'team_member';
 }
 
-interface AuthResponse {
+// Define interface for auth response
+export interface AuthResponse {
   success: boolean;
   data: {
     user: {
@@ -28,6 +33,8 @@ interface AuthResponse {
       role: string;
       organizationId?: string;
       isActive: boolean;
+      subscriptionStatus: string;
+      paymentVerified: boolean;
       createdAt: string;
       lastLoginAt: string;
     };

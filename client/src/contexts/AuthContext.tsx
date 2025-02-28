@@ -44,23 +44,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false;
       }
 
-      // Make sure we're passing an object with email and password properties
-      const response = await loginApi({
-        email,
-        password
-      });
+      try {
+        // Make sure we're passing an object with email and password properties
+        const response = await loginApi({
+          email,
+          password
+        });
 
-      setUser(response.data.user);
-      setAuthenticated(true);
+        // Only set user and show success message if the API call succeeds
+        if (response && response.success) {
+          setUser(response.data.user);
+          setAuthenticated(true);
 
-      // Show success toast
-      toast({
-        title: "Login successful",
-        description: "You have been logged in successfully",
-      });
-
-      return true;
+          // Show success toast
+          toast({
+            title: "Login successful",
+            description: "You have been logged in successfully",
+          });
+          return true;
+        } else {
+          // Handle case where API returns success: false
+          toast({
+            title: "Login failed",
+            description: response.error || "An error occurred during login",
+            variant: "destructive",
+          });
+          return false;
+        }
+      } catch (apiError: any) {
+        // Handle API call errors
+        console.error('API Login error:', apiError);
+        toast({
+          title: "Login failed",
+          description: apiError.message || "An error occurred during login",
+          variant: "destructive",
+        });
+        return false;
+      }
     } catch (error: any) {
+      // Handle any other errors
       console.error('Login error:', error);
       toast({
         title: "Login failed",
