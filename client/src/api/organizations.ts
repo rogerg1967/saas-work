@@ -24,18 +24,16 @@ export const createOrganization = () => {
 // Endpoint: GET /api/organizations
 // Request: {}
 // Response: { organizations: Array<{ _id: string, name: string, industry: string, status: string }> }
-export const getOrganizations = () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        organizations: [
-          { _id: '1', name: 'Acme Corp', industry: 'Technology', status: 'active' },
-          { _id: '2', name: 'Globex Corp', industry: 'Healthcare', status: 'pending' },
-          { _id: '3', name: 'Initech', industry: 'Finance', status: 'active' }
-        ]
-      });
-    }, 500);
-  });
+export const getOrganizations = async () => {
+  try {
+    const response = await api.get('/api/organizations');
+    return {
+      organizations: response.data.data.organizations
+    };
+  } catch (error) {
+    console.error(error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
 };
 
 // Description: Update organization
