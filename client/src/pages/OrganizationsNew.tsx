@@ -29,38 +29,6 @@ export function Organizations() {
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
   const [formData, setFormData] = useState<OrganizationFormData>({
     name: '',
-    industry: '',```
-import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getOrganizations, createOrganization, updateOrganization, deleteOrganization } from "@/api/organizations";
-import { useToast } from "@/hooks/useToast";
-import { useAuth } from "@/contexts/AuthContext";
-
-type Organization = {
-  _id: string;
-  name: string;
-  industry: string;
-  status: string;
-};
-
-type OrganizationFormData = {
-  name: string;
-  industry: string;
-};
-
-export function Organizations() {
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
-  const [formData, setFormData] = useState<OrganizationFormData>({
-    name: '',
     industry: '',
   });
   const { toast } = useToast();
@@ -222,14 +190,16 @@ export function Organizations() {
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleDeleteOrganization(org._id)}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
+                {user?.role === 'admin' && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteOrganization(org._id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
