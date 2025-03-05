@@ -4,7 +4,18 @@ import api from './api';
 // Endpoint: GET /api/chatbots
 // Request: {}
 // Response: { chatbots: Array<{ _id: string, name: string, model: string, provider: string, description: string }> }
-export const getChatbots = () => {
+export const getChatbots = async () => {
+  try {
+    const response = await api.get('/api/chatbots');
+    console.log('Successfully fetched chatbots');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching chatbots:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
+
+  // Mocking the response - comment out or remove this when api integration is done
+  /*
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({
@@ -34,13 +45,25 @@ export const getChatbots = () => {
       });
     }, 500);
   });
+  */
 };
 
 // Description: Create new chatbot
 // Endpoint: POST /api/chatbots
 // Request: { name: string, model: string, provider: string, description: string }
 // Response: { success: boolean, chatbot: { _id: string, name: string, model: string, provider: string, description: string } }
-export const createChatbot = (data: { name: string; model: string; provider: string; description: string }) => {
+export const createChatbot = async (data: { name: string; model: string; provider: string; description: string }) => {
+  try {
+    const response = await api.post('/api/chatbots', data);
+    console.log('Successfully created chatbot');
+    return response.data;
+  } catch (error) {
+    console.error('Error creating chatbot:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
+
+  // Mocking the response - comment out or remove this when api integration is done
+  /*
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({
@@ -52,6 +75,7 @@ export const createChatbot = (data: { name: string; model: string; provider: str
       });
     }, 500);
   });
+  */
 };
 
 // Description: Get chat conversation
@@ -59,6 +83,7 @@ export const createChatbot = (data: { name: string; model: string; provider: str
 // Request: {}
 // Response: { messages: Array<{ id: string, role: string, content: string, timestamp: string, image?: string }> }
 export const getChatConversation = (chatbotId: string) => {
+  // Keep using mock data for now as this endpoint will be implemented in a future task
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({
@@ -99,6 +124,7 @@ export const getChatConversation = (chatbotId: string) => {
 // Request: { message: string, image?: File }
 // Response: { id: string, role: string, content: string, timestamp: string }
 export const sendChatMessage = (chatbotId: string, message: string, image?: File) => {
+  // Keep using mock data for now as this endpoint will be implemented in a future task
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({
