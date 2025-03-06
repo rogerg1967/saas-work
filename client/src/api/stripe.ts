@@ -16,34 +16,15 @@ export const createStripeCheckoutSession = () => {
 };
 
 // Description: Get subscription plans
-// Endpoint: GET /api/stripe/plans
+// Endpoint: GET /api/subscription/plans
 // Request: {}
 // Response: { plans: Array<{ id: string, name: string, price: number, features: string[] }> }
-export const getSubscriptionPlans = () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        plans: [
-          {
-            id: 'basic',
-            name: 'Basic',
-            price: 29,
-            features: ['5 Chatbots', '1,000 Messages/mo', 'Email Support']
-          },
-          {
-            id: 'pro',
-            name: 'Professional',
-            price: 99,
-            features: ['Unlimited Chatbots', 'Unlimited Messages', '24/7 Support', 'Custom Branding']
-          },
-          {
-            id: 'enterprise',
-            name: 'Enterprise',
-            price: 299,
-            features: ['Everything in Pro', 'Dedicated Account Manager', 'Custom Integration', 'SLA Guarantee']
-          }
-        ]
-      });
-    }, 500);
-  });
+export const getSubscriptionPlans = async () => {
+  try {
+    const response = await api.get('/api/subscription/plans');
+    return response.data.data;
+  } catch (error) {
+    console.error(error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
 };
