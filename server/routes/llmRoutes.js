@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const LLMSettingsService = require('../services/llmSettingsService');
+const AIModelService = require('../services/aiModelService');
 const { requireUser } = require('./middleware/auth');
 
 /**
@@ -82,6 +83,40 @@ router.put('/settings', requireUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to update LLM settings'
+    });
+  }
+});
+
+/**
+ * @route GET /api/llm/models
+ * @desc Get available AI models
+ * @access Private
+ */
+router.get('/models', requireUser, (req, res) => {
+  try {
+    console.log('Fetching available AI models');
+
+    // Get provider from query parameter or return all models
+    const { provider } = req.query;
+    let models;
+
+    if (provider) {
+      models = AIModelService.getModelsByProvider(provider);
+      console.log(`Fetched ${models.length} models for provider: ${provider}`);
+    } else {
+      models = AIModelService.getAvailableModels();
+      console.log(`Fetched ${models.length} models from all providers`);
+    }
+
+    res.json({
+      success: true,
+      models
+    });
+  } catch (error) {
+    console.error('Error fetching AI models:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch AI models'
     });
   }
 });

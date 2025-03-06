@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/useToast";
 export function Chatbots() {
   const [chatbots, setChatbots] = useState([]);
   const [models, setModels] = useState([]);
+  const [filteredModels, setFilteredModels] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ export function Chatbots() {
   const [formData, setFormData] = useState({
     name: "",
     model: "",
-    provider: "",
+    provider: "OpenAI",
     description: "",
   });
 
@@ -38,6 +39,22 @@ export function Chatbots() {
     fetchChatbots();
     fetchModels();
   }, []);
+
+  useEffect(() => {
+    // Filter models when provider changes
+    if (models.length > 0) {
+      const filtered = models.filter(model =>
+        model.provider.toLowerCase() === formData.provider.toLowerCase()
+      );
+      setFilteredModels(filtered);
+
+      // Reset selected model when provider changes
+      setFormData(prev => ({
+        ...prev,
+        model: filtered.length > 0 ? filtered[0].id : ""
+      }));
+    }
+  }, [formData.provider, models]);
 
   const fetchChatbots = async () => {
     try {
@@ -56,6 +73,22 @@ export function Chatbots() {
     try {
       const data = await getAvailableModels();
       setModels(data.models);
+      // Initially filter for the default provider
+      setFilteredModels(data.models.filter(model =>
+        model.provider.toLowerCase() === formData.provider.toLowerCase()
+      ));
+      // Set initial model
+      if (data.models.length > 0) {
+        const openAIModels = data.models.filter(model =>
+          model.provider.toLowerCase() === 'openai'
+        );
+        if (openAIModels.length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            model: openAIModels[0].id
+          }));
+        }
+      }
     } catch (error) {
       toast({
         variant: "destructive",
@@ -76,7 +109,7 @@ export function Chatbots() {
         });
         setIsDialogOpen(false);
         fetchChatbots();
-        setFormData({ name: "", model: "", provider: "", description: "" });
+        setFormData({ name: "", model: "", provider: "OpenAI", description: "" });
       }
     } catch (error) {
       toast({
@@ -123,15 +156,33 @@ export function Chatbots() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="provider">Provider</Label>
+                <Select
+                  value={formData.provider}
+                  onValueChange={(value) => {
+                    setFormData({
+                      ...formData,
+                      provider: value,
+                    });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select AI provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="OpenAI">OpenAI</SelectItem>
+                    <SelectItem value="Anthropic">Anthropic</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="model">AI Model</Label>
                 <Select
                   value={formData.model}
                   onValueChange={(value) => {
-                    const selectedModel = models.find((m) => m.id === value);
                     setFormData({
                       ...formData,
                       model: value,
-                      provider: selectedModel?.provider || "",
                     });
                   }}
                 >
@@ -139,9 +190,9 @@ export function Chatbots() {
                     <SelectValue placeholder="Select AI model" />
                   </SelectTrigger>
                   <SelectContent>
-                    {models.map((model) => (
+                    {filteredModels.map((model) => (
                       <SelectItem key={model.id} value={model.id}>
-                        {model.name} ({model.provider})
+                        {model.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

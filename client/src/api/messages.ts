@@ -58,37 +58,12 @@ export const getChatHistory = (chatbotId: string) => {
 // Endpoint: GET /api/llm/models
 // Request: {}
 // Response: { models: Array<{ id: string, name: string, provider: string, capabilities: string[] }> }
-export const getAvailableModels = () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        models: [
-          {
-            id: 'gpt-4-vision',
-            name: 'GPT-4 Vision',
-            provider: 'OpenAI',
-            capabilities: ['text', 'images']
-          },
-          {
-            id: 'gpt-4',
-            name: 'GPT-4',
-            provider: 'OpenAI',
-            capabilities: ['text']
-          },
-          {
-            id: 'claude-3-opus',
-            name: 'Claude 3 Opus',
-            provider: 'Anthropic',
-            capabilities: ['text', 'images']
-          },
-          {
-            id: 'claude-3-sonnet',
-            name: 'Claude 3 Sonnet',
-            provider: 'Anthropic',
-            capabilities: ['text', 'images']
-          }
-        ]
-      });
-    }, 500);
-  });
+export const getAvailableModels = async () => {
+  try {
+    const response = await api.get('/api/llm/models');
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
 };

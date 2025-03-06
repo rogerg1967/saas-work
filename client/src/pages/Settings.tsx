@@ -9,6 +9,7 @@ import { Bell, Lock, User, Wallet, Bot } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { getLLMSettings, updateLLMSettings } from "@/api/llm";
 import { useToast } from "@/hooks/useToast";
+import { getAvailableModels } from "@/api/messages";
 
 export function Settings() {
   const [llmSettings, setLLMSettings] = useState({
@@ -19,6 +20,8 @@ export function Settings() {
     openaiApiKey: '',
     anthropicApiKey: ''
   });
+  const [models, setModels] = useState([]);
+  const [filteredModels, setFilteredModels] = useState([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -34,8 +37,40 @@ export function Settings() {
         });
       }
     };
+    
+    const fetchModels = async () => {
+      try {
+        const data = await getAvailableModels();
+        setModels(data.models);
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message || "Failed to load models"
+        });
+      }
+    };
+    
     fetchLLMSettings();
+    fetchModels();
   }, [toast]);
+
+  useEffect(() => {
+    if (models.length > 0) {
+      const filtered = models.filter(model =>
+        model.provider.toLowerCase() === llmSettings.provider.toLowerCase()
+      );
+      setFilteredModels(filtered);
+
+      // Reset selected model when provider changes
+      if (!filtered.find(m => m.id === llmSettings.model)) {
+        setLLMSettings(prev => ({
+          ...prev,
+          model: filtered.length > 0 ? filtered[0].id : ""
+        }));
+      }
+    }
+  }, [llmSettings.provider, models]);
 
   const handleUpdateLLMSettings = async () => {
     try {
@@ -70,13 +105,13 @@ export function Settings() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label>Provider</Label>
+              <Label htmlFor="provider">AI Provider</Label>
               <Select
                 value={llmSettings.provider}
                 onValueChange={(value) => setLLMSettings({ ...llmSettings, provider: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select provider" />
+                  <SelectValue placeholder="Select AI provider" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="openai">OpenAI</SelectItem>
@@ -116,19 +151,20 @@ export function Settings() {
             )}
 
             <div className="space-y-2">
-              <Label>Model</Label>
+              <Label htmlFor="model">AI Model</Label>
               <Select
                 value={llmSettings.model}
                 onValueChange={(value) => setLLMSettings({ ...llmSettings, model: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select model" />
+                  <SelectValue placeholder="Select AI model" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="gpt-4">GPT-4</SelectItem>
-                  <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                  <SelectItem value="claude-2">Claude 2</SelectItem>
-                  <SelectItem value="claude-instant">Claude Instant</SelectItem>
+                  {filteredModels.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

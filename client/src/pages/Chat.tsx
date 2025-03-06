@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { sendMessage, getChatHistory, getAvailableModels } from "@/api/messages";
+import { getLLMSettings, updateLLMSettings } from "@/api/llm";
 import { useToast } from "@/hooks/useToast";
 import {
   Sheet,
@@ -40,6 +41,8 @@ export function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>("");
+  const [selectedProvider, setSelectedProvider] = useState<string>("OpenAI");
+  const [filteredModels, setFilteredModels] = useState<Model[]>([]);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -50,12 +53,29 @@ export function Chat() {
     if (id) {
       fetchChatHistory();
       fetchModels();
+      fetchLLMSettings();
     }
   }, [id]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    // Filter models when provider changes
+    if (models.length > 0) {
+      const filtered = models.filter(model =>
+        model.provider.toLowerCase() === selectedProvider.toLowerCase()
+      );
+      setFilteredModels(filtered);
+
+      // Set the first model of the filtered list as selected if no model is selected
+      // or the currently selected model isn't from the current provider
+      if (!selectedModel || !filtered.find(m => m.id === selectedModel)) {
+        setSelectedModel(filtered[0]?.id || "");
+      }
+    }
+  }, [selectedProvider, models]);
 
   const fetchChatHistory = async () => {
     try {
@@ -74,12 +94,27 @@ export function Chat() {
     try {
       const data = await getAvailableModels();
       setModels(data.models);
-      setSelectedModel(data.models[0]?.id || "");
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Error",
         description: "Failed to load models",
+      });
+    }
+  };
+
+  const fetchLLMSettings = async () => {
+    try {
+      const data = await getLLMSettings();
+      if (data.settings) {
+        setSelectedProvider(data.settings.provider.charAt(0).toUpperCase() + data.settings.provider.slice(1));
+        setSelectedModel(data.settings.model);
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load LLM settings",
       });
     }
   };
@@ -114,7 +149,7 @@ export function Chat() {
 
     try {
       const response = await sendMessage(id, messageContent, selectedImage, selectedModel);
-      
+
       const userMessage: Message = {
         id: Date.now().toString() + "-user",
         role: "user",
@@ -122,7 +157,7 @@ export function Chat() {
         timestamp: new Date().toISOString(),
         image: imagePreview || undefined,
       };
-      
+
       const assistantMessage: Message = {
         id: Date.now().toString() + "-assistant",
         role: "assistant",
@@ -181,19 +216,28 @@ export function Chat() {
               </SheetHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
+                  <label className="text-sm font-medium">AI Provider</label>
+                  <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select AI provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OpenAI">OpenAI</SelectItem>
+                      <SelectItem value="Anthropic">Anthropic</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <label className="text-sm font-medium">AI Model</label>
                   <Select value={selectedModel} onValueChange={setSelectedModel}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select AI model" />
                     </SelectTrigger>
                     <SelectContent>
-                      {models.map((model) => (
+                      {filteredModels.map((model) => (
                         <SelectItem key={model.id} value={model.id}>
                           <div className="flex items-center">
                             <span>{model.name}</span>
-                            <span className="ml-2 text-xs text-muted-foreground">
-                              ({model.provider})
-                            </span>
                           </div>
                         </SelectItem>
                       ))}
