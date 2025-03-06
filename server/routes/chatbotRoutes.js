@@ -101,4 +101,71 @@ router.delete('/:id', requireUser, requireSubscription, async (req, res) => {
   }
 });
 
+// Get chat conversation for a chatbot
+router.get('/:id/conversation', requireUser, requireSubscription, async (req, res) => {
+  try {
+    console.log(`Fetching conversation for chatbot with ID: ${req.params.id}`);
+    const chatbot = await ChatbotService.getById(req.params.id);
+
+    if (!chatbot) {
+      console.log(`Chatbot with ID ${req.params.id} not found`);
+      return res.status(404).json({ error: 'Chatbot not found' });
+    }
+
+    // Verify the chatbot belongs to the user's organization
+    if (chatbot.organizationId.toString() !== req.user.organizationId.toString()) {
+      console.warn(`User from organization ${req.user.organizationId} attempted to access chatbot from organization ${chatbot.organizationId}`);
+      return res.status(403).json({ error: 'You do not have permission to access this chatbot' });
+    }
+
+    // In a real implementation, we would fetch messages from a database
+    // For now, return an empty array
+    console.log(`Successfully retrieved conversation for chatbot: ${chatbot.name}`);
+    res.json({ messages: [] });
+  } catch (error) {
+    console.error(`Error fetching conversation: ${error.message}`, error);
+    res.status(500).json({ error: `Failed to fetch conversation: ${error.message}` });
+  }
+});
+
+// Send a message to a chatbot
+router.post('/:id/message', requireUser, requireSubscription, async (req, res) => {
+  try {
+    console.log(`Sending message to chatbot with ID: ${req.params.id}`);
+    const chatbot = await ChatbotService.getById(req.params.id);
+
+    if (!chatbot) {
+      console.log(`Chatbot with ID ${req.params.id} not found`);
+      return res.status(404).json({ error: 'Chatbot not found' });
+    }
+
+    // Verify the chatbot belongs to the user's organization
+    if (chatbot.organizationId.toString() !== req.user.organizationId.toString()) {
+      console.warn(`User from organization ${req.user.organizationId} attempted to access chatbot from organization ${chatbot.organizationId}`);
+      return res.status(403).json({ error: 'You do not have permission to access this chatbot' });
+    }
+
+    const { message } = req.body;
+    const { llmService } = require('../services/llmService');
+
+    // Process the message using the LLM service
+    console.log(`Processing message with ${chatbot.provider} model: ${chatbot.model}`);
+    const response = await llmService.sendLLMRequest(chatbot.provider, chatbot.model, message);
+
+    // Create a response object
+    const responseObj = {
+      id: new Date().getTime().toString(),
+      role: 'assistant',
+      content: response,
+      timestamp: new Date().toISOString()
+    };
+
+    console.log(`Successfully processed message for chatbot: ${chatbot.name}`);
+    res.json(responseObj);
+  } catch (error) {
+    console.error(`Error processing message: ${error.message}`, error);
+    res.status(500).json({ error: `Failed to process message: ${error.message}` });
+  }
+});
+
 module.exports = router;
