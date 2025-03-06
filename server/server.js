@@ -11,6 +11,7 @@ const stripeWebhooks = require("./routes/stripeWebhooks");
 const organizationRoutes = require('./routes/organizationRoutes');
 const chatbotRoutes = require('./routes/chatbotRoutes');
 const teamRoutes = require('./routes/teamRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const { connectDB } = require("./config/database");
 const cors = require("cors");
 
@@ -57,6 +58,8 @@ app.use('/api/organizations', organizationRoutes);
 app.use('/api/chatbots', chatbotRoutes);
 // Team Routes
 app.use('/api/team', teamRoutes);
+// Admin Routes
+app.use('/api/admin', adminRoutes);
 
 // If no routes handled the request, it's a 404
 app.use((req, res, next) => {

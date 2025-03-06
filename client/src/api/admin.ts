@@ -4,34 +4,14 @@ import api from './api';
 // Endpoint: GET /api/admin/organizations
 // Request: {}
 // Response: { organizations: Array<{ _id: string, name: string, status: string, industry: string, users: Array<{ _id: string, name: string, email: string, role: string }> }> }
-export const getAdminOrganizations = () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        organizations: [
-          {
-            _id: '1',
-            name: 'Acme Corp',
-            status: 'active',
-            industry: 'Technology',
-            users: [
-              { _id: 'u1', name: 'John Doe', email: 'john@acme.com', role: 'Admin' },
-              { _id: 'u2', name: 'Jane Smith', email: 'jane@acme.com', role: 'Manager' }
-            ]
-          },
-          {
-            _id: '2',
-            name: 'Globex Corp',
-            status: 'pending',
-            industry: 'Healthcare',
-            users: [
-              { _id: 'u3', name: 'Bob Wilson', email: 'bob@globex.com', role: 'Admin' }
-            ]
-          }
-        ]
-      });
-    }, 500);
-  });
+export const getAdminOrganizations = async () => {
+  try {
+    const response = await api.get('/api/admin/organizations');
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
 };
 
 // Description: Update organization status
