@@ -239,7 +239,7 @@ export function Admin() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    {user.organization.name}
+                    {user.organization ? user.organization.name : "No Organization"}
                   </span>
                   <Select
                     value={user.role}

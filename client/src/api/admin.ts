@@ -46,36 +46,14 @@ export const deleteOrganization = async (id: string) => {
 // Endpoint: GET /api/admin/users
 // Request: {}
 // Response: { users: Array<{ _id: string, name: string, email: string, role: string, organization: { _id: string, name: string } }> }
-export const getAdminUsers = () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        users: [
-          {
-            _id: 'u1',
-            name: 'John Doe',
-            email: 'john@acme.com',
-            role: 'Admin',
-            organization: { _id: '1', name: 'Acme Corp' }
-          },
-          {
-            _id: 'u2',
-            name: 'Jane Smith',
-            email: 'jane@acme.com',
-            role: 'Manager',
-            organization: { _id: '1', name: 'Acme Corp' }
-          },
-          {
-            _id: 'u3',
-            name: 'Bob Wilson',
-            email: 'bob@globex.com',
-            role: 'Admin',
-            organization: { _id: '2', name: 'Globex Corp' }
-          }
-        ]
-      });
-    }, 500);
-  });
+export const getAdminUsers = async () => {
+  try {
+    const response = await api.get('/api/admin/users');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin users:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
 };
 
 // Description: Update user role
