@@ -17,13 +17,15 @@ export const getAdminOrganizations = async () => {
 // Description: Update organization status
 // Endpoint: PUT /api/admin/organizations/:id/status
 // Request: { status: string }
-// Response: { success: boolean }
-export const updateOrganizationStatus = (id: string, status: string) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true });
-    }, 500);
-  });
+// Response: { success: boolean, organization: { _id: string, name: string, industry: string, status: string } }
+export const updateOrganizationStatus = async (id: string, status: string) => {
+  try {
+    const response = await api.put(`/api/admin/organizations/${id}/status`, { status });
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
 };
 
 // Description: Delete organization

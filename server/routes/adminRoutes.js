@@ -17,12 +17,12 @@ const USER_ROLES = {
 router.get('/organizations', requireUser, async (req, res) => {
   try {
     console.log('Admin organization fetch request received', { userId: req.user._id });
-    
+
     // Check if the user is an admin
     if (req.user.role !== USER_ROLES.ADMIN) {
-      console.log('Access denied - non-admin user attempted to access admin route', { 
-        userId: req.user._id, 
-        userRole: req.user.role 
+      console.log('Access denied - non-admin user attempted to access admin route', {
+        userId: req.user._id,
+        userRole: req.user.role
       });
       return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
     }
@@ -36,7 +36,7 @@ router.get('/organizations', requireUser, async (req, res) => {
       organizations.map(async (org) => {
         const users = await User.find({ organizationId: org._id })
           .select('_id name email role');
-        
+
         console.log(`Found ${users.length} users for organization ${org.name} (${org._id})`);
 
         return {
@@ -57,6 +57,114 @@ router.get('/organizations', requireUser, async (req, res) => {
   } catch (error) {
     console.error('Error fetching organizations for admin:', error);
     return res.status(500).json({ error: error.message || 'An unexpected error occurred while fetching organizations' });
+  }
+});
+
+// Get all users for admin
+router.get('/users', requireUser, async (req, res) => {
+  try {
+    console.log('Admin users fetch request received', { userId: req.user._id });
+    
+    // Validate user is admin
+    if (req.user.role !== USER_ROLES.ADMIN) {
+      console.log('Access denied - non-admin user attempted to access admin route', {
+        userId: req.user._id,
+        userRole: req.user.role
+      });
+      return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
+    }
+
+    // Get all users with their organization
+    const users = await User.find()
+      .select('-password')
+      .populate('organizationId', 'name industry status')
+      .lean();
+
+    console.log(`Found ${users.length} users for admin view`);
+
+    // Format the response
+    const formattedUsers = users.map(user => ({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      organization: user.organizationId ? {
+        _id: user.organizationId._id,
+        name: user.organizationId.name,
+        industry: user.organizationId.industry,
+        status: user.organizationId.status
+      } : null
+    }));
+
+    console.log('Successfully fetched all users for admin view');
+    return res.status(200).json({
+      success: true,
+      users: formattedUsers
+    });
+  } catch (error) {
+    console.error('Error fetching users for admin:', error);
+    return res.status(500).json({ error: error.message || 'An unexpected error occurred while fetching users' });
+  }
+});
+
+// Update organization status
+router.put('/organizations/:id/status', requireUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    console.log('Admin organization status update request received', { 
+      userId: req.user._id, 
+      organizationId: id,
+      newStatus: status
+    });
+
+    // Validate user is admin
+    if (req.user.role !== USER_ROLES.ADMIN) {
+      console.log('Access denied - non-admin user attempted to update organization status', {
+        userId: req.user._id,
+        userRole: req.user.role,
+        organizationId: id
+      });
+      return res.status(403).json({ error: 'Only admins can update organization status' });
+    }
+
+    // Validate status value
+    const validStatuses = ['active', 'inactive', 'pending', 'suspended'];
+    if (!validStatuses.includes(status)) {
+      console.log('Invalid status value provided', { 
+        providedStatus: status, 
+        validStatuses 
+      });
+      return res.status(400).json({ error: 'Invalid status value' });
+    }
+
+    // Update the organization
+    const organization = await Organization.findByIdAndUpdate(
+      id,
+      { status, updatedAt: Date.now() },
+      { new: true }
+    );
+
+    if (!organization) {
+      console.log('Organization not found for status update', { organizationId: id });
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    console.log('Successfully updated organization status', {
+      organizationId: id,
+      organizationName: organization.name,
+      oldStatus: organization.status,
+      newStatus: status
+    });
+
+    return res.status(200).json({
+      success: true,
+      organization
+    });
+  } catch (error) {
+    console.error('Error updating organization status:', error);
+    return res.status(500).json({ error: error.message || 'An unexpected error occurred while updating organization status' });
   }
 });
 
