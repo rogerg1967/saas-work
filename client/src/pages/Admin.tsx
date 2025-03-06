@@ -249,9 +249,9 @@ export function Admin() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                      <SelectItem value="Manager">Manager</SelectItem>
-                      <SelectItem value="User">User</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="organization_manager">Manager</SelectItem>
+                      <SelectItem value="team_member">User</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

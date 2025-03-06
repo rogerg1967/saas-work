@@ -3,6 +3,7 @@ const { requireUser } = require('./middleware/auth');
 const Organization = require('../models/Organization');
 const User = require('../models/User');
 const OrganizationService = require('../services/organizationService');
+const UserService = require('../services/userService');
 
 const router = express.Router();
 
@@ -212,6 +213,82 @@ router.delete('/organizations/:id', requireUser, async (req, res) => {
     });
   } catch (error) {
     console.error(`Error deleting organization: ${error.message}`, error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Update user role
+router.put('/users/:id/role', requireUser, async (req, res) => {
+  try {
+    console.log('Admin user role update request received', {
+      userId: req.user._id,
+      targetUserId: req.params.id,
+      newRole: req.body.role
+    });
+
+    if (req.user.role !== USER_ROLES.ADMIN) {
+      console.log('Access denied - non-admin user attempted to update user role', {
+        userId: req.user._id,
+        userRole: req.user.role,
+        targetUserId: req.params.id
+      });
+      return res.status(403).json({ error: 'Access denied. Admin role required.' });
+    }
+
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!role) {
+      console.log('Missing role in request body', { userId: req.params.id });
+      return res.status(400).json({ error: 'Role is required' });
+    }
+
+    // Check if the role is valid
+    const validRoles = Object.values(USER_ROLES);
+    if (!validRoles.includes(role)) {
+      console.log('Invalid role value provided', {
+        providedRole: role,
+        validRoles
+      });
+      return res.status(400).json({
+        error: `Invalid role. Role must be one of: ${validRoles.join(', ')}`
+      });
+    }
+
+    const user = await UserService.get(id);
+    if (!user) {
+      console.log('User not found for role update', { userId: id });
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    console.log('Updating user role', {
+      userId: id,
+      currentRole: user.role,
+      newRole: role
+    });
+
+    // Update the user's role
+    const updatedUser = await UserService.update(id, { role });
+
+    console.log('Successfully updated user role', {
+      userId: updatedUser._id,
+      userName: updatedUser.name,
+      oldRole: user.role,
+      newRole: updatedUser.role
+    });
+
+    return res.status(200).json({
+      success: true,
+      user: {
+        _id: updatedUser._id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        role: updatedUser.role,
+        organizationId: updatedUser.organizationId
+      }
+    });
+  } catch (error) {
+    console.error(`Error updating user role: ${error.message}`, error);
     return res.status(500).json({ error: error.message });
   }
 });

@@ -59,13 +59,15 @@ export const getAdminUsers = async () => {
 // Description: Update user role
 // Endpoint: PUT /api/admin/users/:id/role
 // Request: { role: string }
-// Response: { success: boolean }
-export const updateUserRole = (id: string, role: string) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true });
-    }, 500);
-  });
+// Response: { success: boolean, user: { _id: string, email: string, name: string, role: string, organizationId: string } }
+export const updateUserRole = async (id: string, role: string) => {
+  try {
+    const response = await api.put(`/api/admin/users/${id}/role`, { role });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
 };
 
 // Description: Delete user
