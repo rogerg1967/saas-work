@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check } from "lucide-react";
@@ -9,7 +8,6 @@ import { useToast } from "@/hooks/useToast";
 export function Subscription() {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -21,7 +19,7 @@ export function Subscription() {
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to load subscription plans",
+          description: "Failed to load subscription plans: " + error.message,
         });
       }
     };
@@ -31,19 +29,23 @@ export function Subscription() {
   const handleSubscribe = async (planId: string) => {
     try {
       setLoading(true);
-      const { success } = await createStripeCheckoutSession();
-      if (success) {
-        navigate("/dashboard");
+      const response = await createStripeCheckoutSession(planId);
+
+      if (response.success && response.data.url) {
+        // Redirect to Stripe's checkout page
+        window.location.href = response.data.url;
+      } else {
         toast({
-          title: "Success",
-          description: "Subscription activated successfully",
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to create checkout session",
         });
       }
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to process subscription",
+        description: "Failed to process subscription: " + error.message,
       });
     } finally {
       setLoading(false);

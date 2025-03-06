@@ -1,18 +1,21 @@
 import api from './api';
 
 // Description: Create Stripe checkout session
-// Endpoint: POST /api/stripe/create-checkout-session
-// Request: {}
-// Response: { success: boolean, url: string }
-export const createStripeCheckoutSession = () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        success: true,
-        url: '/subscription'
-      });
-    }, 500);
-  });
+// Endpoint: POST /api/subscription/create-checkout-session
+// Request: { planId: string, successUrl?: string, cancelUrl?: string }
+// Response: { success: boolean, data: { sessionId: string, url: string } }
+export const createStripeCheckoutSession = async (planId: string) => {
+  try {
+    const response = await api.post('/api/subscription/create-checkout-session', {
+      planId,
+      successUrl: `${window.location.origin}/dashboard`,
+      cancelUrl: `${window.location.origin}/subscription`
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creating checkout session:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
 };
 
 // Description: Get subscription plans

@@ -43,7 +43,7 @@ class StripeService {
         success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: cancelUrl,
         metadata: {
-          userId: userId,
+          userId: userId.toString(), // Convert ObjectId to string
         },
       });
 
