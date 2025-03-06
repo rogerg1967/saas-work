@@ -62,6 +62,10 @@ const schema = new mongoose.Schema({
     index: true,
     default: () => randomUUID(),
   },
+  metadata: {
+    type: Object,
+    default: {},
+  }, // Field for additional data like phone number
 }, {
   versionKey: false,
 });
