@@ -85,31 +85,35 @@ export function Settings() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>OpenAI API Key</Label>
-              <Input
-                type="password"
-                value={llmSettings.openaiApiKey}
-                onChange={(e) => setLLMSettings({ ...llmSettings, openaiApiKey: e.target.value })}
-                placeholder="Enter your OpenAI API key"
-              />
-              <p className="text-sm text-muted-foreground">
-                Required for using OpenAI models like GPT-4 and GPT-3.5
-              </p>
-            </div>
+            {llmSettings.provider === 'openai' && (
+              <div className="space-y-2">
+                <Label>OpenAI API Key</Label>
+                <Input
+                  type="password"
+                  value={llmSettings.openaiApiKey}
+                  onChange={(e) => setLLMSettings({ ...llmSettings, openaiApiKey: e.target.value })}
+                  placeholder="Enter your OpenAI API key"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Required for using OpenAI models like GPT-4 and GPT-3.5
+                </p>
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label>Anthropic API Key</Label>
-              <Input
-                type="password"
-                value={llmSettings.anthropicApiKey}
-                onChange={(e) => setLLMSettings({ ...llmSettings, anthropicApiKey: e.target.value })}
-                placeholder="Enter your Anthropic API key"
-              />
-              <p className="text-sm text-muted-foreground">
-                Required for using Anthropic models like Claude
-              </p>
-            </div>
+            {llmSettings.provider === 'anthropic' && (
+              <div className="space-y-2">
+                <Label>Anthropic API Key</Label>
+                <Input
+                  type="password"
+                  value={llmSettings.anthropicApiKey}
+                  onChange={(e) => setLLMSettings({ ...llmSettings, anthropicApiKey: e.target.value })}
+                  placeholder="Enter your Anthropic API key"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Required for using Anthropic models like Claude
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Model</Label>
