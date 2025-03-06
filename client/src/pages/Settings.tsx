@@ -15,7 +15,9 @@ export function Settings() {
     provider: 'openai',
     model: 'gpt-4',
     temperature: 0.7,
-    maxTokens: 2048
+    maxTokens: 2048,
+    openaiApiKey: '',
+    anthropicApiKey: ''
   });
   const { toast } = useToast();
 
@@ -28,7 +30,7 @@ export function Settings() {
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to load LLM settings"
+          description: error.message || "Failed to load LLM settings"
         });
       }
     };
@@ -48,7 +50,7 @@ export function Settings() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update LLM settings"
+        description: error.message || "Failed to update LLM settings"
       });
     }
   };
@@ -81,6 +83,32 @@ export function Settings() {
                   <SelectItem value="anthropic">Anthropic</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>OpenAI API Key</Label>
+              <Input
+                type="password"
+                value={llmSettings.openaiApiKey}
+                onChange={(e) => setLLMSettings({ ...llmSettings, openaiApiKey: e.target.value })}
+                placeholder="Enter your OpenAI API key"
+              />
+              <p className="text-sm text-muted-foreground">
+                Required for using OpenAI models like GPT-4 and GPT-3.5
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Anthropic API Key</Label>
+              <Input
+                type="password"
+                value={llmSettings.anthropicApiKey}
+                onChange={(e) => setLLMSettings({ ...llmSettings, anthropicApiKey: e.target.value })}
+                placeholder="Enter your Anthropic API key"
+              />
+              <p className="text-sm text-muted-foreground">
+                Required for using Anthropic models like Claude
+              </p>
             </div>
 
             <div className="space-y-2">

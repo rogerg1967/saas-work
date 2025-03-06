@@ -3,33 +3,34 @@ import api from './api';
 // Description: Get LLM settings
 // Endpoint: GET /api/llm/settings
 // Request: {}
-// Response: { settings: { provider: string, model: string, temperature: number, maxTokens: number } }
-export const getLLMSettings = () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        settings: {
-          provider: 'openai',
-          model: 'gpt-4',
-          temperature: 0.7,
-          maxTokens: 2048
-        }
-      });
-    }, 500);
-  });
+// Response: { success: boolean, settings: { provider: string, model: string, temperature: number, maxTokens: number, openaiApiKey: string, anthropicApiKey: string } }
+export const getLLMSettings = async () => {
+  try {
+    const response = await api.get('/api/llm/settings');
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
 };
 
 // Description: Update LLM settings
 // Endpoint: PUT /api/llm/settings
-// Request: { provider: string, model: string, temperature: number, maxTokens: number }
-// Response: { success: boolean, settings: { provider: string, model: string, temperature: number, maxTokens: number } }
-export const updateLLMSettings = (data: { provider: string; model: string; temperature: number; maxTokens: number }) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        success: true,
-        settings: data
-      });
-    }, 500);
-  });
+// Request: { provider: string, model: string, temperature: number, maxTokens: number, openaiApiKey?: string, anthropicApiKey?: string }
+// Response: { success: boolean, settings: { provider: string, model: string, temperature: number, maxTokens: number, openaiApiKey: string, anthropicApiKey: string } }
+export const updateLLMSettings = async (data: {
+  provider: string;
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  openaiApiKey?: string;
+  anthropicApiKey?: string;
+}) => {
+  try {
+    const response = await api.put('/api/llm/settings', data);
+    return response.data;
+  } catch (error) {
+    console.error(error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
 };
