@@ -2,6 +2,7 @@ const express = require('express');
 const { requireUser } = require('./middleware/auth');
 const Organization = require('../models/Organization');
 const User = require('../models/User');
+const OrganizationService = require('../services/organizationService');
 
 const router = express.Router();
 
@@ -64,7 +65,7 @@ router.get('/organizations', requireUser, async (req, res) => {
 router.get('/users', requireUser, async (req, res) => {
   try {
     console.log('Admin users fetch request received', { userId: req.user._id });
-    
+
     // Validate user is admin
     if (req.user.role !== USER_ROLES.ADMIN) {
       console.log('Access denied - non-admin user attempted to access admin route', {
@@ -113,8 +114,8 @@ router.put('/organizations/:id/status', requireUser, async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    console.log('Admin organization status update request received', { 
-      userId: req.user._id, 
+    console.log('Admin organization status update request received', {
+      userId: req.user._id,
       organizationId: id,
       newStatus: status
     });
@@ -132,9 +133,9 @@ router.put('/organizations/:id/status', requireUser, async (req, res) => {
     // Validate status value
     const validStatuses = ['active', 'inactive', 'pending', 'suspended'];
     if (!validStatuses.includes(status)) {
-      console.log('Invalid status value provided', { 
-        providedStatus: status, 
-        validStatuses 
+      console.log('Invalid status value provided', {
+        providedStatus: status,
+        validStatuses
       });
       return res.status(400).json({ error: 'Invalid status value' });
     }
@@ -165,6 +166,53 @@ router.put('/organizations/:id/status', requireUser, async (req, res) => {
   } catch (error) {
     console.error('Error updating organization status:', error);
     return res.status(500).json({ error: error.message || 'An unexpected error occurred while updating organization status' });
+  }
+});
+
+// Delete an organization (admin only)
+router.delete('/organizations/:id', requireUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if user is an admin
+    if (req.user.role !== USER_ROLES.ADMIN) {
+      return res.status(403).json({
+        error: 'Only admins can delete organizations'
+      });
+    }
+
+    // Find all users in this organization
+    const usersInOrg = await User.find({ organizationId: id });
+    console.log(`Found ${usersInOrg.length} users in organization ${id}`);
+
+    // Update all users in the organization to have null organizationId
+    if (usersInOrg.length > 0) {
+      await User.updateMany(
+        { organizationId: id },
+        {
+          $set: {
+            organizationId: null,
+            role: USER_ROLES.TEAM_MEMBER
+          }
+        }
+      );
+      console.log(`Updated ${usersInOrg.length} users: removed organization and set role to team_member`);
+    }
+
+    // Delete the organization
+    const result = await OrganizationService.delete(id);
+
+    if (!result) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Organization deleted successfully'
+    });
+  } catch (error) {
+    console.error(`Error deleting organization: ${error.message}`, error);
+    return res.status(500).json({ error: error.message });
   }
 });
 

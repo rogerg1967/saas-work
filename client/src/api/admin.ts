@@ -31,13 +31,15 @@ export const updateOrganizationStatus = async (id: string, status: string) => {
 // Description: Delete organization
 // Endpoint: DELETE /api/admin/organizations/:id
 // Request: {}
-// Response: { success: boolean }
-export const deleteOrganization = (id: string) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true });
-    }, 500);
-  });
+// Response: { success: boolean, message: string }
+export const deleteOrganization = async (id: string) => {
+  try {
+    const response = await api.delete(`/api/admin/organizations/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting organization:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
 };
 
 // Description: Get all users
