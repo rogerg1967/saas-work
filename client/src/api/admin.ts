@@ -73,11 +73,13 @@ export const updateUserRole = async (id: string, role: string) => {
 // Description: Delete user
 // Endpoint: DELETE /api/admin/users/:id
 // Request: {}
-// Response: { success: boolean }
-export const deleteUser = (id: string) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true });
-    }, 500);
-  });
+// Response: { success: boolean, message: string }
+export const deleteUser = async (id: string) => {
+  try {
+    const response = await api.delete(`/api/admin/users/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
 };

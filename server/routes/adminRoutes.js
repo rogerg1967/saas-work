@@ -293,4 +293,48 @@ router.put('/users/:id/role', requireUser, async (req, res) => {
   }
 });
 
+// Delete a user (admin only)
+router.delete('/users/:id', requireUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Admin user deletion request received', {
+      adminUserId: req.user._id,
+      targetUserId: id
+    });
+
+    // Check if user is an admin
+    if (req.user.role !== USER_ROLES.ADMIN) {
+      console.log('Access denied - non-admin user attempted to delete a user', {
+        userId: req.user._id,
+        userRole: req.user.role,
+        targetUserId: id
+      });
+      return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
+    }
+
+    // Prevent admin from deleting themselves
+    if (req.user._id.toString() === id) {
+      console.log('Admin attempted to delete their own account', { adminId: id });
+      return res.status(400).json({ error: 'You cannot delete your own admin account' });
+    }
+
+    // Delete the user
+    const result = await UserService.delete(id);
+
+    if (!result) {
+      console.log('User not found for deletion', { userId: id });
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    console.log('User successfully deleted', { deletedUserId: id });
+    return res.status(200).json({
+      success: true,
+      message: 'User deleted successfully'
+    });
+  } catch (error) {
+    console.error(`Error deleting user: ${error.message}`, error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
