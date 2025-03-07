@@ -1,57 +1,48 @@
 import api from './api';
 
 // Description: Send message to chatbot
-// Endpoint: POST /api/chatbot/:id/messages
-// Request: { message: string, image?: File, model: string }
-// Response: { response: string }
-export const sendMessage = (chatbotId: string, message: string, image?: File, model?: string) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        response: `I am an AI assistant using ${model || 'default'} model. Here is my response to your ${image ? 'image and ' : ''}message: ${message}`
-      });
-    }, 500);
-  });
+// Endpoint: POST /api/chatbots/:id/message
+// Request: { message: string, image?: File }
+// Response: { id: string, role: 'user' | 'assistant', content: string, timestamp: string }
+export const sendMessage = async (chatbotId: string, message: string, image?: File, model?: string) => {
+  try {
+    const formData = new FormData();
+
+    if (message) {
+      formData.append('message', message);
+    }
+
+    if (image) {
+      formData.append('image', image);
+    }
+
+    // Note: The model parameter is ignored because the chatbot already has a model configured
+
+    const response = await api.post(`/api/chatbots/${chatbotId}/message`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error sending message:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
 };
 
 // Description: Get chat history
-// Endpoint: GET /api/chatbot/:id/messages
+// Endpoint: GET /api/chatbots/:id/conversation
 // Request: {}
 // Response: { messages: Array<{ id: string, role: 'user' | 'assistant', content: string, timestamp: string, image?: string }> }
-export const getChatHistory = (chatbotId: string) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        messages: [
-          {
-            id: '1',
-            role: 'user',
-            content: 'Hello, how can you help me?',
-            timestamp: '2024-01-20T10:00:00Z'
-          },
-          {
-            id: '2',
-            role: 'assistant',
-            content: 'Hi! I\'m here to assist you with any questions you have about our services.',
-            timestamp: '2024-01-20T10:00:01Z'
-          },
-          {
-            id: '3',
-            role: 'user',
-            content: 'What features do you offer?',
-            timestamp: '2024-01-20T10:00:02Z',
-            image: 'https://picsum.photos/300/200'
-          },
-          {
-            id: '4',
-            role: 'assistant',
-            content: 'I see the image you shared. We offer various features including automated customer support, data analysis, and task automation. How can I help you today?',
-            timestamp: '2024-01-20T10:00:03Z'
-          }
-        ]
-      });
-    }, 500);
-  });
+export const getChatHistory = async (chatbotId: string) => {
+  try {
+    const response = await api.get(`/api/chatbots/${chatbotId}/conversation`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting chat history:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
 };
 
 // Description: Get available LLM models
@@ -63,7 +54,7 @@ export const getAvailableModels = async () => {
     const response = await api.get('/api/llm/models');
     return response.data;
   } catch (error) {
-    console.error(error);
+    console.error('Error getting available models:', error);
     throw new Error(error?.response?.data?.error || error.message);
   }
 };

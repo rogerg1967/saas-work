@@ -15,18 +15,24 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { getChatbots, createChatbot } from "@/api/chat";
+import { getChatbots, createChatbot, getOrganizationsForAdmin } from "@/api/chat";
 import { getAvailableModels } from "@/api/messages";
 import { useToast } from "@/hooks/useToast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function Chatbots() {
   const [chatbots, setChatbots] = useState([]);
   const [models, setModels] = useState([]);
+  const [organizations, setOrganizations] = useState([]);
   const [filteredModels, setFilteredModels] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedOrganization, setSelectedOrganization] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  const isAdmin = user?.role === 'admin';
 
   const [formData, setFormData] = useState({
     name: "",
@@ -38,7 +44,12 @@ export function Chatbots() {
   useEffect(() => {
     fetchChatbots();
     fetchModels();
-  }, []);
+
+    // Only fetch organizations if user is admin
+    if (isAdmin) {
+      fetchOrganizations();
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     // Filter models when provider changes
@@ -98,10 +109,34 @@ export function Chatbots() {
     }
   };
 
+  const fetchOrganizations = async () => {
+    try {
+      const data = await getOrganizationsForAdmin();
+      setOrganizations(data.organizations || []);
+
+      // Set first organization as default if there are organizations
+      if (data.organizations && data.organizations.length > 0) {
+        setSelectedOrganization(data.organizations[0]._id);
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load organizations",
+      });
+    }
+  };
+
   const handleCreateChatbot = async () => {
     try {
       setIsLoading(true);
-      const result = await createChatbot(formData);
+      
+      const requestData = {
+        ...formData,
+        ...(isAdmin && { organizationId: selectedOrganization }) // Only include organizationId for admin users
+      };
+      
+      const result = await createChatbot(requestData);
       if (result.success) {
         toast({
           title: "Success",
@@ -209,6 +244,29 @@ export function Chatbots() {
                   placeholder="Enter chatbot description"
                 />
               </div>
+              
+              {/* Only show organization selection for admin users */}
+              {isAdmin && (
+                <div className="space-y-2">
+                  <Label htmlFor="organization">Organization</Label>
+                  <Select
+                    value={selectedOrganization}
+                    onValueChange={setSelectedOrganization}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select organization" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {organizations.map((org) => (
+                        <SelectItem key={org._id} value={org._id}>
+                          {org.name} ({org.status})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
               <Button
                 onClick={handleCreateChatbot}
                 className="w-full"

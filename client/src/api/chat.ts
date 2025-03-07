@@ -15,11 +15,17 @@ export const getChatbots = async () => {
   }
 };
 
-// Description: Create new chatbot
+// Description: Create chatbot
 // Endpoint: POST /api/chatbots
-// Request: { name: string, model: string, provider: string, description: string }
-// Response: { success: boolean, chatbot: { _id: string, name: string, model: string, provider: string, description: string } }
-export const createChatbot = async (data: { name: string; model: string; provider: string; description: string }) => {
+// Request: { name: string, description: string, model: string, provider: string, organizationId?: string }
+// Response: { success: boolean, chatbot: { _id: string, name: string, description: string, status: string, model: string, provider: string } }
+export const createChatbot = async (data: {
+  name: string;
+  description: string;
+  model: string;
+  provider: string;
+  organizationId?: string;
+}) => {
   try {
     const response = await api.post('/api/chatbots', data);
     console.log('Successfully created chatbot');
@@ -68,6 +74,20 @@ export const sendChatMessage = async (chatbotId: string, message: string, image?
     return response.data;
   } catch (error) {
     console.error('Error sending chat message:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
+};
+
+// Description: Get chatbots
+// Endpoint: GET /api/admin/organizations
+// Request: {}
+// Response: { success: boolean, organizations: Array<{ _id: string, name: string, status: string, industry: string, users: Array<any> }> }
+export const getOrganizationsForAdmin = async () => {
+  try {
+    const response = await api.get('/api/admin/organizations');
+    return response.data;
+  } catch (error) {
+    console.error(error);
     throw new Error(error?.response?.data?.error || error.message);
   }
 };

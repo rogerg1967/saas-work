@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const express = require("express");
 const session = require("express-session");
 const MongoStore = require('connect-mongo');
+const path = require('path');
 const basicRoutes = require("./routes/index");
 const authRoutes = require("./routes/authRoutes");
 const subscriptionRoutes = require("./routes/subscriptionRoutes");
@@ -36,6 +37,9 @@ app.use('/api/stripe/webhook', express.raw({type: 'application/json'}));
 // Regular parsers for other routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database connection
 connectDB();
