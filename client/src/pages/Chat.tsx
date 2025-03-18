@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { Send, Image as ImageIcon, Bot, Settings, X } from "lucide-react";
+import { Send, Image as ImageIcon, Bot, Settings, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -82,6 +83,7 @@ export function Chat() {
       const data = await getChatHistory(id);
       setMessages(data.messages);
     } catch (error) {
+      console.error("Error fetching chat history:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -95,6 +97,7 @@ export function Chat() {
       const data = await getAvailableModels();
       setModels(data.models);
     } catch (error) {
+      console.error("Error fetching models:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -111,6 +114,7 @@ export function Chat() {
         setSelectedModel(data.settings.model);
       }
     } catch (error) {
+      console.error("Error fetching LLM settings:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -148,8 +152,7 @@ export function Chat() {
     setIsLoading(true);
 
     try {
-      const response = await sendMessage(id, messageContent, selectedImage, selectedModel);
-
+      // Create and add the user message immediately for better UX
       const userMessage: Message = {
         id: Date.now().toString() + "-user",
         role: "user",
@@ -158,21 +161,36 @@ export function Chat() {
         image: imagePreview || undefined,
       };
 
+      setMessages((prev) => [...prev, userMessage]);
+
+      // Send the message to the backend
+      const response = await sendMessage(id, messageContent, selectedImage, selectedModel);
+
+      // Create the assistant message from the response
       const assistantMessage: Message = {
-        id: Date.now().toString() + "-assistant",
-        role: "assistant",
-        content: response.response,
-        timestamp: new Date().toISOString(),
+        id: response.id || Date.now().toString() + "-assistant",
+        role: response.role || "assistant",
+        content: response.content, // This is the key change - use content instead of response
+        timestamp: response.timestamp || new Date().toISOString(),
       };
 
-      setMessages((prev) => [...prev, userMessage, assistantMessage]);
+      // Add the assistant message to the chat
+      setMessages((prev) => [...prev, assistantMessage]);
+
       setSelectedImage(null);
       setImagePreview(null);
+
+      // Reset textarea height to default (2 rows)
+      const textarea = document.querySelector('textarea');
+      if (textarea) {
+        textarea.style.height = ''; // Reset to CSS default
+      }
     } catch (error) {
+      console.error("Error sending message:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to send message",
+        description: error.message || "Failed to send message",
       });
     } finally {
       setIsLoading(false);
@@ -189,13 +207,21 @@ export function Chat() {
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight;
+        console.log('Scrolled to bottom, viewport height:', viewport.scrollHeight);
+      } else {
+        console.log('Viewport element not found within ScrollArea');
+      }
+    } else {
+      console.log('ScrollAreaRef is not attached to any element');
     }
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-10rem)] pb-6">
-      <Card className="flex-1 flex flex-col">
+    <div className="flex flex-col h-[calc(100vh-10rem-3.5rem)]">
+      <Card className="flex-1 flex flex-col overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center space-x-2">
             <Bot className="h-5 w-5" />
@@ -248,9 +274,9 @@ export function Chat() {
             </SheetContent>
           </Sheet>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col p-6">
-          <ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
-            <div className="space-y-4">
+        <CardContent className="flex-1 flex flex-col p-6 overflow-hidden">
+          <ScrollArea className="flex-1 pr-4" ref={scrollAreaRef}>
+            <div className="space-y-4 mb-4">
               {messages.map((message) => (
                 <div
                   key={message.id}
@@ -281,10 +307,17 @@ export function Chat() {
                   </div>
                 </div>
               ))}
+              {isLoading && (
+                <div className="flex justify-center items-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              )}
             </div>
           </ScrollArea>
+        </CardContent>
+        <div className="p-4 border-t">
           {imagePreview && (
-            <div className="mt-4 relative inline-block">
+            <div className="mb-4 relative inline-block">
               <img
                 src={imagePreview}
                 alt="Preview"
@@ -300,7 +333,7 @@ export function Chat() {
               </Button>
             </div>
           )}
-          <form onSubmit={handleSendMessage} className="flex gap-2 mt-4">
+          <form onSubmit={handleSendMessage} className="flex gap-2">
             <input
               type="file"
               accept="image/*"
@@ -316,18 +349,42 @@ export function Chat() {
             >
               <ImageIcon className="h-4 w-4" />
             </Button>
-            <Input
+            <Textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setInput(e.target.value);
+
+                // Auto-grow functionality
+                const textarea = e.target;
+                textarea.style.height = 'auto'; // Reset height to recalculate
+
+                // Calculate new height based on content
+                const newHeight = Math.min(textarea.scrollHeight, 12 * 24); // Assuming 24px per line (adjust as needed)
+                textarea.style.height = `${newHeight}px`;
+              }}
               placeholder="Type your message..."
               disabled={isLoading}
-              className="flex-1"
+              className="flex-1 min-h-[40px] overflow-y-auto"
+              style={{
+                maxHeight: '288px', // 12 rows * 24px per row
+                resize: 'none'
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage(e);
+                }
+              }}
             />
             <Button type="submit" disabled={isLoading}>
-              <Send className="h-4 w-4" />
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           </form>
-        </CardContent>
+        </div>
       </Card>
     </div>
   );

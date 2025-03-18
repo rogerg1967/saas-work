@@ -9,7 +9,7 @@ export function Layout({ children }) {
       <Sidebar />
       <div className="lg:pl-72">
         <Header />
-        <main className="py-16">
+        <main className="py-16 pb-20">
           <div className="px-4 sm:px-6 lg:px-8">
             {children}
           </div>

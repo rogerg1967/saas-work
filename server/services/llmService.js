@@ -148,11 +148,21 @@ async function sendRequestToOpenAI(model, message) {
 async function sendRequestToAnthropic(model, message) {
   const client = await getAnthropicClient();
 
+  // Map simplified model names to the full Anthropic model IDs
+  const modelMap = {
+    'claude-3-opus': 'claude-3-opus-20240229',
+    'claude-3-sonnet': 'claude-3-sonnet-20240229',
+    'claude-3-haiku': 'claude-3-haiku-20240307',
+    'claude-2': 'claude-2.1'
+  };
+
+  const fullModelName = modelMap[model] || model;
+
   for (let i = 0; i < MAX_RETRIES; i++) {
     try {
-      console.log(`Sending request to Anthropic with model: ${model} and message: ${message}`);
+      console.log(`Sending request to Anthropic with model: ${fullModelName} (mapped from ${model}) and message: ${message}`);
       const response = await client.messages.create({
-        model: model,
+        model: fullModelName,
         messages: [{ role: 'user', content: message }],
         max_tokens: 1024,
       });

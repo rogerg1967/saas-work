@@ -72,25 +72,29 @@ class AIModelService {
         id: 'claude-3-opus',
         name: 'Claude 3 Opus',
         provider: 'Anthropic',
-        capabilities: ['text', 'images']
+        capabilities: ['text', 'images'],
+        apiId: 'claude-3-opus-20240229'
       },
       {
         id: 'claude-3-sonnet',
         name: 'Claude 3 Sonnet',
         provider: 'Anthropic',
-        capabilities: ['text', 'images']
+        capabilities: ['text', 'images'],
+        apiId: 'claude-3-sonnet-20240229'
       },
       {
         id: 'claude-3-haiku',
         name: 'Claude 3 Haiku',
         provider: 'Anthropic',
-        capabilities: ['text', 'images']
+        capabilities: ['text', 'images'],
+        apiId: 'claude-3-haiku-20240307'
       },
       {
         id: 'claude-2',
         name: 'Claude 2',
         provider: 'Anthropic',
-        capabilities: ['text']
+        capabilities: ['text'],
+        apiId: 'claude-2.1'
       }
     ];
 
@@ -107,6 +111,24 @@ class AIModelService {
     return allModels.filter(model =>
       model.provider.toLowerCase() === provider.toLowerCase()
     );
+  }
+
+  /**
+   * Get the API model ID for Anthropic models
+   * @param {string} modelId - The internal model ID
+   * @returns {string} The API model ID to use with Anthropic
+   */
+  static getAnthropicApiModelId(modelId) {
+    const models = this.getAvailableModels();
+    const model = models.find(m => m.id === modelId && m.provider === 'Anthropic');
+    
+    if (model && model.apiId) {
+      console.log(`Mapping Anthropic model ${modelId} to API ID ${model.apiId}`);
+      return model.apiId;
+    }
+    
+    console.log(`No API ID mapping found for Anthropic model ${modelId}, using as-is`);
+    return modelId;
   }
 }
 

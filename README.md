@@ -1,91 +1,82 @@
 ```markdown
 # SaaS Work
 
-SaaS Work is a high-performance SaaS platform designed to provide UK GDPR-compliant AI chatbots to organizations. Built with Vue.js and Tailwind CSS on the frontend and Node.js with Express on the backend, this platform allows organizations to manage chatbots while ensuring stringent data privacy and security.
+SaaS Work is a SaaS platform built using Vue.js and Tailwind CSS geared toward providing UK GDPR-compliant AI chatbots to organizations. It features role-based access, where only a SaaS admin can add organizations, and users must request to join existing organizations. Users are required to complete a subscription payment using Stripe before accessing the application. The platform dynamically integrates AI chatbot models based on the selected AI provider through real-time API integrations.
 
 ## Overview
 
-### Architecture
-SaaS Work features a robust architectural design, leveraging a combination of modern technologies to deliver a smooth and secure user experience. The project comprises a frontend application built using React.js and Tailwind CSS, and a backend server implemented with Node.js and Express. Data is stored and managed using MongoDB, with Mongoose for object data modeling.
+SaaS Work leverages a modern tech stack for both the frontend and backend, utilizing:
+- **Frontend**: Vue.js with Tailwind CSS, organized using Vite and shadcn-ui component library.
+- **Backend**: Express-based server with REST API endpoints and MongoDB with Mongoose for data storage.
+- **Authentication**: Token-based authentication using bearer access and refresh tokens.
+- **Payment Integration**: Subscription payments managed through Stripe.
+- **AI Integration**: Dynamic AI chatbot models fetched from OpenAI and other providers via API.
 
-### Project Structure
-The project is divided into two main parts:
-1. **Frontend**: Located in the `client/` directory, it uses React.js with client-side routing provided by React Router Dom. Vite is used as the build tool and development server.
-2. **Backend**: Found in the `server/` directory, it runs a Node.js server using Express to handle RESTful API calls. MongoDB is used for the database, with Mongoose for schema management and interaction.
+The project is structured as follows:
 
-The backend handles user authentication using JSON Web Tokens (JWT) for secure access and refresh tokens. Stripe is integrated for managing subscription payments.
+### Frontend (client/)
+- `client/src/pages`: Main pages such as Home, Login, Register, Dashboard, etc.
+- `client/src/components`: UI components used by pages.
+- `client/src/api`: API request files mocking server responses, structured with descriptions, endpoints, requests, and responses.
+
+### Backend (server/)
+- `server/api`: REST API endpoints for authentication, subscriptions, and CRUD operations.
+- `server/models`: Mongoose schemas for Chatbot, Organization, User, Message, and LLMSettings.
+- `server/routes`: Higher-level route definitions for various endpoints.
+- `server/services`: Business logic for each model, handling complex operations.
+- `server/middleware`: Authentication and subscription validation middleware.
 
 ## Features
 
-- **Role-Based Access Control**: Supports various user roles including SaaS Admin, Organization Manager, and Team Member.
-- **GDPR Compliance**: Ensures data privacy and protection in compliance with UK GDPR regulations.
-- **AI Chatbots**: Provides an interface to create, manage, and interact with AI chatbots.
-- **User Management**: Includes sophisticated user and organization management features.
-- **Stripe Integration**: Facilitates subscription payments and securely manages customer transactions.
-- **Modern UI**: Utilizes Tailwind CSS and shadcn-ui components for a modern and responsive user interface.
+The SaaS Work platform includes:
+1. **Role-Based Access Control**: SaaS admins manage organizations and users who must request to join organizations.
+2. **GDPR Compliance**: Compliant with UK GDPR for data protection.
+3. **Subscription Management**: Users must subscribe via Stripe payment integration before accessing the platform.
+4. **Dynamic AI Chatbots**: Real-time updated AI models from providers like OpenAI.
+5. **Admin Dashboard**: Allows admins to manage organizations, users, and chatbots.
+6. **User Dashboard**: Provides functionality for users to interact with chatbots and other users within their organization.
 
-## Getting Started
+## Getting started
 
 ### Requirements
 
-To run the project locally, you'll need:
-
-- Node.js (v14 or above)
-- npm (v6 or above)
-- MongoDB (running instance)
-- Stripe account (for handling subscriptions)
-- Environment variables set up in `.env` files
+To run the project, ensure you have the following installed on your development machine:
+- Node.js (v14 or later)
+- NPM (v6 or later)
+- MongoDB (locally or through a managed service)
+- Stripe account for managing subscription payments
 
 ### Quickstart
 
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/yourusername/saas-work.git
-   cd saas-work
-   ```
+1. **Clone the repository**:
+    ```sh
+    git clone [repository-url]
+    cd [repository-url]
+    ```
 
-2. **Install Dependencies**
+2. **Set up environment variables**:
+    Create a `.env` file in the `server/` folder with the following values:
+    ```env
+    PORT=3000
+    DATABASE_URL=mongodb://localhost/saasworks
+    ACCESS_TOKEN_SECRET=your_access_token_secret
+    REFRESH_TOKEN_SECRET=your_refresh_token_secret
+    STRIPE_SECRET_KEY=your_stripe_secret_key
+    ```
 
-   **Frontend:**
-   ```bash
-   cd client
-   npm install
-   ```
+3. **Install dependencies**:
+    In the project root, run the following commands:
+    ```sh
+    npm install
+    ```
 
-   **Backend:**
-   ```bash
-   cd ../server
-   npm install
-   ```
-
-3. **Setup Environment Variables**
-
-   Create a `.env` file in both the `client/` and `server/` directories with the necessary configurations. For example:
-
-   **server/.env**
-   ```plaintext
-   DATABASE_URL=mongodb://localhost:27017/saaswork
-   JWT_SECRET=your_jwt_secret
-   STRIPE_SECRET_KEY=your_stripe_secret_key
-   ```
-
-   **client/.env**
-   ```plaintext
-   VITE_API_URL=http://localhost:3000/api
-   ```
-
-4. **Run the Development Server**
-   From the project root, run:
-   ```bash
-   npm run start
-   ```
-
-   This will start both the frontend on port 5173 and the backend on port 3000 concurrently.
-
-5. **Access the Application**
-   Open your browser and navigate to `http://localhost:5173` to access the frontend application.
+4. **Start the development server**:
+    Use the concurrently command to run both client and server:
+    ```sh
+    npm run start
+    ```
 
 ### License
 
-The project is proprietary (not open source). Copyright (c) 2024.
+The project is proprietary. Copyright (c) 2024.
 ```
