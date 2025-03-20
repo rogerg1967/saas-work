@@ -13,7 +13,7 @@ const schema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'inactive', 'pending'],
+    enum: ['active', 'inactive', 'pending', 'suspended'],
     default: 'pending',
   },
   createdAt: {
