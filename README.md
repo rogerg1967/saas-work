@@ -1,120 +1,104 @@
 # SaaS Work
 
-"SaaS Work" is a Software as a Service (SaaS) platform designed to provide UK GDPR compliant AI chatbots to organizations. The platform is developed using Vue.js and Tailwind CSS for the frontend, with a backend powered by Express.js and MongoDB. The primary objective of the platform is to offer role-based access for different levels of users, streamline the signup process, and ensure secure subscription management through Stripe.
+SaaS Work is a platform designed to provide UK GDPR compliant AI chatbots to organisations. It leverages the power of VueJS and Tailwind CSS for its frontend, and includes a robust backend with REST API endpoints, MongoDB for data storage, and Stripe for managing subscription payments.
 
 ## Overview
 
-The "SaaS Work" platform leverages a modern tech stack to deliver a robust AI chatbot service. Here's an overview of the architecture and technologies used:
+SaaS Work is built with a modern tech stack encompassing a VueJS frontend styled with Tailwind CSS, and an ExpressJS backend. It is designed to ensure that organisations can deploy GDPR-compliant AI chatbots easily while managing users, subscriptions, and organisations efficiently.
 
-### Frontend
-- **Framework**: Vue.js
-- **Styling**: Tailwind CSS
-- **Component Library**: Shadcn-ui
-- **State Management**: Context API
-- **Routing**: React Router
+### Architecture and Technologies
+- **Frontend**:
+  - **VueJS**: JavaScript framework for building interactive user interfaces.
+  - **Tailwind CSS**: Utility-first CSS framework for styling.
+  - **Client Folder Structure**:
+    - `client/src/pages/`: Contains the main page components.
+    - `client/src/components/`: Reusable components.
+    - `client/src/api/`: Centralized API request files.
+    - `vite.config.ts`: Vite build tool configuration for development and production environments.
 
-### Backend
-- **Framework**: Express.js
-- **Database**: MongoDB (with Mongoose)
-- **Authentication**: Token-based (JWT with bearer access and refresh tokens)
+- **Backend**:
+  - **Express**: A web application framework for Node.js.
+  - **REST API**: Implements endpoints for various functionalities such as authentication, user management, organisation management, and AI chatbot operations.
+  - **MongoDB**: Document-oriented database for storing user, chatbot, and organisational data.
+  - **Mongoose**: ORM for MongoDB.
+  - **Token-based Authentication**: Access and refresh tokens for user session management.
+  - **Stripe**: Payment processing.
 
 ### Project Structure
-```
-project/
-│
-├── client/                  # Frontend code
-│   ├── src/
-│   │   ├── api/
-│   │   ├── components/
-│   │   ├── contexts/
-│   │   ├── hooks/
-│   │   ├── pages/
-│   │   ├── App.tsx
-│   │   ├── main.tsx
-│   │   └── ...
-│   ├── public/
-│   ├── index.html
-│   ├── package.json
-│   └── ...
-├── server/                  # Backend code
-│   ├── models/
-│   ├── routes/
-│   ├── services/
-│   ├── utils/
-│   ├── config/
-│   ├── scripts/
-│   ├── package.json
-│   └── ...
-├── .env
-├── .gitignore
-└── README.md
-```
+
+- `client/`: Contains the frontend code:
+  - `components/`: Reusable UI components using Shadcn UI.
+  - `pages/`: Page components like Home, Login, Register, Dashboard, etc.
+  - `api/`: Files that define API requests and manage mocked data during development.
+  - `styles/`: Tailwind CSS configurations and global styles.
+- `server/`: Contains the backend code:
+  - `routes/`: API endpoint definitions and middleware for handling authentication and authorization.
+  - `models/`: Mongoose schemas for data models like User, Organization, Chatbot, etc.
+  - `services/`: Business logic encapsulated in service classes.
+  - `utils/`: Utility functions for authentication and password management.
+- `package.json`: Configuration and dependencies for the project.
 
 ## Features
 
-### User Management
-- **Role-Based Access**: User roles include SaaS admin, organization manager, and team member.
-- **Signup and Login**: Secure signup and login processes with JWT token handling.
-- **Profile Management**: Users can view and manage their profiles.
+- **Role-based Access Control**: Different roles including Admin, Organisation Manager, and Team Member.
+- **GDPR Compliant AI Chatbots**: Only admins can add organisations, users request to join existing organisations.
+- **User Registration and Authentication**: Secure registration and login with token-based authentication.
+- **Subscription Management via Stripe**: Users must make a subscription payment to gain access.
+- **Dynamic AI Model Selection**: Choose from latest AI models based on the selected AI provider.
+- **Real-time Data Updates**: Displays active users and their activities in real-time.
+- **CRUD Operations for Users and Chatbots**: Admin functionalities to create, edit, and delete users and chatbots.
+- **Error Handling**: User-friendly error messages and validation feedback.
 
-### Organization Management
-- **Organization Creation**: SaaS admins can create organizations.
-- **User Association**: Users request to join existing organizations, which are approved by SaaS admins.
-- **Industry Field Auto-Population**: The industry field in organization settings displays the current assigned industry.
-
-### Subscription Management
-- **Stripe Integration**: Subscription payments are processed via Stripe, and users are granted access upon successful payment.
-
-### AI Chatbots
-- **Dynamic Model Selection**: AI chatbot models are dynamically populated based on the selected provider, including up-to-date models from OpenAI.
-- **Chatbot CRUD**: Users can create, edit, and delete chatbots within their organizations.
-
-### Dashboard
-- **Real-Time Data**: Active user data on the dashboard is updated in real-time.
-- **Navigation Enhancements**: Users can view their profile and logout directly from the side navigation.
-
-## Getting Started
+## Getting started
 
 ### Requirements
 
-Ensure you have the following technologies installed:
-
-- **Node.js**: >= 14.x.x
-- **npm**: >= 6.x.x
-- **MongoDB**: A running instance of MongoDB
+To run SaaS Work, you'll need the following installed on your computer:
+- **Node.js** (>=14.x)
+- **npm** (Node Package Manager, comes with Node.js)
+- **MongoDB** (Database)
 
 ### Quickstart
 
-1. **Clone the Repository**
+Following these steps will set up and run the project locally:
+
+1. **Clone the Repository**:
    ```sh
-   git clone <repository_url>
-   cd project/
+   git clone <repository-url>
+   cd <repository-directory>
    ```
 
-2. **Setup Environment Variables**
-   Create a `.env` file with the required configuration settings. Refer to `.env.example` for necessary variables.
-
-3. **Install Dependencies**
-   ```sh
-   # Install frontend dependencies
-   cd client/
+2. **Install Dependencies**:
+   ```
    npm install
-   
-   # Install backend dependencies
-   cd ../server/
+   cd client
+   npm install
+   cd ../server
    npm install
    ```
 
-4. **Run the Application**
-   Use concurrently to start both frontend and backend simultaneously.
+3. **Set Up Environment Variables**:
+   Create a `.env` file in both the `client` and `server` directories and add the necessary configuration as specified in the `.env.example` files.
+
+4. **Start MongoDB**:
+   Ensure you have a MongoDB instance running. You can start one locally with:
+   ```sh
+   mongod
+   ```
+
+5. **Run the Project**:
+   Run the following command from the root directory to start both the client and server:
    ```sh
    npm run start
    ```
 
+6. **Access the Application**:
+   Open your browser and navigate to `http://localhost:5173` to access the frontend.
+
 ### License
 
-The project is proprietary.
+The project is proprietary. All rights reserved.
 
-```
-© 2024 SaaS Work. All rights reserved.
+```text
+Copyright (c) 2024.
 ```
