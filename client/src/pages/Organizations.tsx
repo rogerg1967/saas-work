@@ -146,7 +146,11 @@ export function Organizations() {
 
   const openEditDialog = (org: Organization) => {
     setSelectedOrg(org);
-    setFormData({ name: org.name, industry: org.industry });
+    // Ensure both name and industry are set when opening the edit dialog
+    setFormData({
+      name: org.name,
+      industry: org.industry || '' // Ensure industry has a default value if null
+    });
     setIsEditDialogOpen(true);
   };
 
@@ -209,27 +213,33 @@ export function Organizations() {
               <CardTitle className="flex items-center justify-between">
                 <span>{org.name}</span>
                 <span className={`px-2 py-1 rounded-full text-xs ${
-                  org.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                  org.status === 'active' ? 'bg-green-100 text-green-800' :
+                  org.status === 'suspended' ? 'bg-red-100 text-red-800' :
+                  'bg-yellow-100 text-yellow-800'
                 }`}>
                   {org.status}
                 </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">{org.industry}</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                {org.industry || 'No industry specified'}
+              </p>
               <div className="flex space-x-2">
                 <Button variant="outline" size="sm" onClick={() => openEditDialog(org)}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleDeleteOrganization(org._id)}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
+                {user?.role === 'admin' && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteOrganization(org._id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
