@@ -15,8 +15,26 @@ import { Subscription } from "./pages/Subscription"
 import { Admin } from "./pages/Admin"
 import { Layout } from "./components/Layout"
 import { ProtectedRoute } from "./components/ProtectedRoute"
+import { useEffect } from "react"
+import { recordActivity } from "./api/activeUsers"
 
 function App() {
+  useEffect(() => {
+    // Record user activity every 5 minutes
+    const activityInterval = setInterval(() => {
+      if (localStorage.getItem('accessToken')) {
+        recordActivity();
+      }
+    }, 5 * 60 * 1000);
+
+    // Initial activity record
+    if (localStorage.getItem('accessToken')) {
+      recordActivity();
+    }
+
+    return () => clearInterval(activityInterval);
+  }, []);
+
   return (
     <AuthProvider>
       <ThemeProvider defaultTheme="light" storageKey="ui-theme">

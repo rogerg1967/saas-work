@@ -14,6 +14,7 @@ const chatbotRoutes = require('./routes/chatbotRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const llmRoutes = require('./routes/llmRoutes');
+const activeUserRoutes = require('./routes/activeUserRoutes');
 const { connectDB } = require("./config/database");
 const cors = require("cors");
 
@@ -69,6 +70,8 @@ app.use('/api/team', teamRoutes);
 app.use('/api/admin', adminRoutes);
 // LLM Routes
 app.use('/api/llm', llmRoutes);
+// Active User Routes
+app.use('/api/active-users', activeUserRoutes);
 
 // If no routes handled the request, it's a 404
 app.use((req, res, next) => {

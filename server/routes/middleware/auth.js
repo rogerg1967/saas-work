@@ -1,5 +1,6 @@
 const UserService = require('../../services/userService.js');
 const jwt = require('jsonwebtoken');
+const ActiveUserService = require('../../services/activeUserService.js');
 
 const requireUser = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
@@ -12,6 +13,9 @@ const requireUser = async (req, res, next) => {
       return res.status(401).json({ error: 'User not found' });
     }
     req.user = user;
+
+    // Record user activity
+    ActiveUserService.recordUserActivity(user._id);
 
     next();
   } catch (err) {

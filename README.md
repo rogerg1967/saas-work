@@ -1,82 +1,98 @@
-```markdown
 # SaaS Work
 
-SaaS Work is a SaaS platform built using Vue.js and Tailwind CSS geared toward providing UK GDPR-compliant AI chatbots to organizations. It features role-based access, where only a SaaS admin can add organizations, and users must request to join existing organizations. Users are required to complete a subscription payment using Stripe before accessing the application. The platform dynamically integrates AI chatbot models based on the selected AI provider through real-time API integrations.
+SaaS Work is a platform designed to provide UK GDPR-compliant AI chatbots to organizations using Vue.js and Tailwind CSS. The platform includes role-based access and functionality for SaaS admins, organization managers, and team members. It features user sign-up, subscription management through Stripe, and integration with OpenAI for dynamically populating AI chatbot models. Additionally, it includes real-time active user tracking and data management through MongoDB.
 
 ## Overview
 
-SaaS Work leverages a modern tech stack for both the frontend and backend, utilizing:
-- **Frontend**: Vue.js with Tailwind CSS, organized using Vite and shadcn-ui component library.
-- **Backend**: Express-based server with REST API endpoints and MongoDB with Mongoose for data storage.
-- **Authentication**: Token-based authentication using bearer access and refresh tokens.
-- **Payment Integration**: Subscription payments managed through Stripe.
-- **AI Integration**: Dynamic AI chatbot models fetched from OpenAI and other providers via API.
+SaaS Work consists of two main parts:
 
-The project is structured as follows:
+1. **Frontend**:
+    - Built with Vue.js and Tailwind CSS.
+    - Uses Vite as the development server running on port 5173.
+    - Incorporates `shadcn-ui` component library.
+    - Client-side routing implemented with `react-router-dom`.
+    - Features include login, registration, subscription, and dashboard pages.
 
-### Frontend (client/)
-- `client/src/pages`: Main pages such as Home, Login, Register, Dashboard, etc.
-- `client/src/components`: UI components used by pages.
-- `client/src/api`: API request files mocking server responses, structured with descriptions, endpoints, requests, and responses.
-
-### Backend (server/)
-- `server/api`: REST API endpoints for authentication, subscriptions, and CRUD operations.
-- `server/models`: Mongoose schemas for Chatbot, Organization, User, Message, and LLMSettings.
-- `server/routes`: Higher-level route definitions for various endpoints.
-- `server/services`: Business logic for each model, handling complex operations.
-- `server/middleware`: Authentication and subscription validation middleware.
+2. **Backend**:
+    - Express-based server with REST API endpoints.
+    - PostgreSQL database managed with Sequelize ORM.
+    - Handles authentication using JSON Web Tokens (JWT).
+    - Role-based access control for different user roles.
+    - Stripe integration for subscription payments.
 
 ## Features
 
-The SaaS Work platform includes:
-1. **Role-Based Access Control**: SaaS admins manage organizations and users who must request to join organizations.
-2. **GDPR Compliance**: Compliant with UK GDPR for data protection.
-3. **Subscription Management**: Users must subscribe via Stripe payment integration before accessing the platform.
-4. **Dynamic AI Chatbots**: Real-time updated AI models from providers like OpenAI.
-5. **Admin Dashboard**: Allows admins to manage organizations, users, and chatbots.
-6. **User Dashboard**: Provides functionality for users to interact with chatbots and other users within their organization.
+- **Role-Based Access Control**:
+  - SaaS Admin: Can manage organizations and users.
+  - Organization Manager: Can manage organization-specific settings and members.
+  - Team Member: Can access and utilize assigned chatbots.
+
+- **User Sign-Up and Authentication**:
+  - Registration Form: Collects profile details and allows users to request joining an organization.
+  - Stripe Integration: Ensures subscription payment before accessing the application.
+
+- **AI Chatbots Management**:
+  - Dynamic Model Selection: Integrates with OpenAI to fetch the latest list of models.
+  - Real-Time Updates: Uses API integration for regular model updates.
+  - CRUD Operations: Allows users to create, edit, and delete chatbots.
+
+- **Real-Time User Monitoring**:
+  - Active Users Panel: Displays real-time data on current active users.
+  - Background User Activity Recording: Asynchronously records user activity every 5 minutes.
 
 ## Getting started
 
 ### Requirements
 
-To run the project, ensure you have the following installed on your development machine:
-- Node.js (v14 or later)
-- NPM (v6 or later)
-- MongoDB (locally or through a managed service)
-- Stripe account for managing subscription payments
+To run this project, ensure you have the following installed:
+
+- Node.js (v14.x or higher)
+- npm (v6.x or higher)
+- PostgreSQL (v12.x or higher)
 
 ### Quickstart
 
 1. **Clone the repository**:
-    ```sh
-    git clone [repository-url]
-    cd [repository-url]
+    ```bash
+    git clone https://example.com/SaaS-Work.git
+    cd SaaS-Work
     ```
 
 2. **Set up environment variables**:
-    Create a `.env` file in the `server/` folder with the following values:
-    ```env
-    PORT=3000
-    DATABASE_URL=mongodb://localhost/saasworks
-    ACCESS_TOKEN_SECRET=your_access_token_secret
-    REFRESH_TOKEN_SECRET=your_refresh_token_secret
-    STRIPE_SECRET_KEY=your_stripe_secret_key
-    ```
+   - Create a `.env` file in both the `client/` and `server/` directories. Populate it with necessary configuration values like database URL, JWT secrets, and Stripe keys.
 
 3. **Install dependencies**:
-    In the project root, run the following commands:
-    ```sh
+    ```bash
+    # Install server dependencies
+    cd server
+    npm install
+
+    # Install client dependencies
+    cd ../client
     npm install
     ```
 
-4. **Start the development server**:
-    Use the concurrently command to run both client and server:
-    ```sh
+4. **Set up the database**:
+   - Ensure your PostgreSQL database is running.
+   - Run migrations and seed the database (if necessary).
+
+5. **Run the application**:
+    ```bash
+    # Start the server
+    cd server
+    npm run start
+
+    # Start the client
+    cd client
     npm run start
     ```
+   
+   Navigate to `http://localhost:5173` to see the app in action.
 
-### License
+## License
 
-The project is proprietary. Copyright (c) 2024.
+The project is proprietary. 
+
+```
+Copyright (c) 2024.
 ```
