@@ -66,6 +66,14 @@ const schema = new mongoose.Schema({
     type: Object,
     default: {},
   }, // Field for additional data like phone number
+  passwordResetToken: {
+    type: String,
+    default: null,
+  },
+  passwordResetExpires: {
+    type: Date,
+    default: null,
+  },
 }, {
   versionKey: false,
 });

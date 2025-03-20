@@ -5,6 +5,8 @@ const { requireUser } = require('./middleware/auth.js');
 const { generateAccessToken, generateRefreshToken } = require('../utils/auth.js');
 const jwt = require('jsonwebtoken');
 const { randomUUID } = require('crypto');
+const User = require('../models/User.js');
+const { validatePassword } = require('../utils/auth.js');
 
 const router = express.Router();
 
@@ -299,6 +301,199 @@ router.get('/me', requireUser, async (req, res) => {
     });
   } catch (error) {
     console.error(`Get user profile error: ${error.message}`, error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Update user profile
+router.put('/profile', requireUser, async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    const userId = req.user._id;
+
+    // Validate inputs
+    if (!name && !email) {
+      return res.status(400).json({
+        success: false,
+        error: 'No fields to update provided'
+      });
+    }
+
+    // Check if email is already in use by another user
+    if (email && email !== req.user.email) {
+      const existingUser = await UserService.getByEmail(email);
+      if (existingUser && existingUser._id.toString() !== userId.toString()) {
+        return res.status(400).json({
+          success: false,
+          error: 'Email is already in use by another account'
+        });
+      }
+    }
+
+    // Update user
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+
+    const updatedUser = await UserService.update(userId, updateData);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        user: {
+          _id: updatedUser._id,
+          email: updatedUser.email,
+          name: updatedUser.name,
+          role: updatedUser.role,
+          organizationId: updatedUser.organizationId,
+          isActive: updatedUser.isActive,
+          subscriptionStatus: updatedUser.subscriptionStatus,
+          paymentVerified: updatedUser.paymentVerified,
+          createdAt: updatedUser.createdAt,
+          lastLoginAt: updatedUser.lastLoginAt
+        }
+      }
+    });
+  } catch (error) {
+    console.error(`Profile update error: ${error.message}`, error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Request password reset (generates token)
+router.post('/request-password-reset', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email is required'
+      });
+    }
+
+    const user = await UserService.getByEmail(email);
+    if (!user) {
+      // For security reasons, don't reveal that the user doesn't exist
+      return res.status(200).json({
+        success: true,
+        message: 'If your email is registered, you will receive password reset instructions.'
+      });
+    }
+
+    // Generate reset token
+    const resetToken = randomUUID();
+    const resetExpires = new Date();
+    resetExpires.setHours(resetExpires.getHours() + 1); // Token valid for 1 hour
+
+    // Save token to user
+    user.passwordResetToken = resetToken;
+    user.passwordResetExpires = resetExpires;
+    await user.save();
+
+    // In a real application, you would send an email with the reset link
+    // For this implementation, we'll just return the token in the response
+    // This would normally be sent via email with a link to a reset page
+
+    return res.status(200).json({
+      success: true,
+      message: 'If your email is registered, you will receive password reset instructions.',
+      // Include token in response for demonstration purposes
+      // In production, remove this and send via email
+      data: {
+        resetToken
+      }
+    });
+  } catch (error) {
+    console.error(`Password reset request error: ${error.message}`, error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Reset password using token
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token and new password are required'
+      });
+    }
+
+    // Find user with this token
+    const user = await User.findOne({
+      passwordResetToken: token,
+      passwordResetExpires: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password reset token is invalid or has expired'
+      });
+    }
+
+    // Set new password
+    await UserService.setPassword(user, password);
+
+    // Clear reset token
+    user.passwordResetToken = null;
+    user.passwordResetExpires = null;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password has been reset successfully.'
+    });
+  } catch (error) {
+    console.error(`Password reset error: ${error.message}`, error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Change password (when user knows current password)
+router.post('/change-password', requireUser, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user._id;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Current password and new password are required'
+      });
+    }
+
+    // Get user with password
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Verify current password
+    const isValid = await validatePassword(currentPassword, user.password);
+    if (!isValid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Current password is incorrect'
+      });
+    }
+
+    // Set new password
+    await UserService.setPassword(user, newPassword);
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+  } catch (error) {
+    console.error(`Change password error: ${error.message}`, error);
     return res.status(500).json({ error: error.message });
   }
 });
