@@ -13,6 +13,7 @@ import { Team } from "./pages/Team"
 import { Settings } from "./pages/Settings"
 import { Subscription } from "./pages/Subscription"
 import { Admin } from "./pages/Admin"
+import { UserProfile } from "./pages/UserProfile"
 import { Layout } from "./components/Layout"
 import { ProtectedRoute } from "./components/ProtectedRoute"
 import { useEffect } from "react"
@@ -111,6 +112,14 @@ function App() {
                   <Layout>
                     <Admin />
                   </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <UserProfile />
                 </ProtectedRoute>
               }
             />

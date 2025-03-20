@@ -147,3 +147,17 @@ export const logout = async (email: string) => {
     throw new Error(error?.response?.data?.error || error.message);
   }
 };
+
+// Description: Get current user profile
+// Endpoint: GET /api/auth/me
+// Request: {}
+// Response: { success: boolean, data: { user: { _id: string, email: string, name: string, role: string, organizationId?: string, isActive: boolean, subscriptionStatus: string, paymentVerified: boolean, createdAt: string, lastLoginAt: string } } }
+export const getCurrentUser = async () => {
+  try {
+    const response = await api.get('/api/auth/me');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
+};

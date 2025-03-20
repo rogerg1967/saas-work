@@ -1,128 +1,120 @@
 # SaaS Work
 
-SaaS Work is a platform providing UK GDPR-compliant AI chatbots to organizations. Built using Vue.js and Express, it offers role-based access, user management, and payment integration to ensure seamless chatbot deployment and management for UK organizations.
+"SaaS Work" is a Software as a Service (SaaS) platform designed to provide UK GDPR compliant AI chatbots to organizations. The platform is developed using Vue.js and Tailwind CSS for the frontend, with a backend powered by Express.js and MongoDB. The primary objective of the platform is to offer role-based access for different levels of users, streamline the signup process, and ensure secure subscription management through Stripe.
 
 ## Overview
 
-SaaS Work employs a dual architecture comprising a ReactJS-based frontend and an Express-based backend. The frontend is set up in the `client/` folder, using Vite as the development server, Tailwind CSS for styling, and Shadcn-ui component library. The backend resides in the `server/` folder, implementing REST API endpoints and employing MongoDB for data storage with Mongoose as an ORM.
+The "SaaS Work" platform leverages a modern tech stack to deliver a robust AI chatbot service. Here's an overview of the architecture and technologies used:
 
-### Architecture 
+### Frontend
+- **Framework**: Vue.js
+- **Styling**: Tailwind CSS
+- **Component Library**: Shadcn-ui
+- **State Management**: Context API
+- **Routing**: React Router
 
-- **Frontend**:
-  - ReactJS (hosted in `client/` directory)
-  - Tailwind CSS
-  - Shadcn-ui component library
-  - Vite development server
-  - Client-side routing using `react-router-dom`
+### Backend
+- **Framework**: Express.js
+- **Database**: MongoDB (with Mongoose)
+- **Authentication**: Token-based (JWT with bearer access and refresh tokens)
 
-- **Backend**:
-  - ExpressJS (hosted in `server/` directory)
-  - MongoDB with Mongoose
-  - Token-based authentication using bearer access and refresh tokens
-  - REST API endpoints
-  - Stripe for payment integration
-
-### Project Structure 
-
-- `client/`: Contains all frontend code and assets.
-  - `src/`: Source files for the frontend, including components, pages, contexts, hooks, and API wrappers.
-  - `api/`: API request definitions with mocking support.
-  - `components/`: Reusable UI components.
-  - `pages/`: React components corresponding to different routes/views.
-  - `contexts/`: React contexts for managing states like authentication.
-  - `hooks/`: Custom React hooks.
-
-- `server/`: Contains all backend code.
-  - `models/`: Mongoose schema definitions.
-  - `routes/`: Express route definitions.
-  - `services/`: Business logic abstraction layers.
-  - `utils/`: Helper functions and utilities.
-  - `config/`: Database configuration and environment variable management.
+### Project Structure
+```
+project/
+│
+├── client/                  # Frontend code
+│   ├── src/
+│   │   ├── api/
+│   │   ├── components/
+│   │   ├── contexts/
+│   │   ├── hooks/
+│   │   ├── pages/
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   └── ...
+│   ├── public/
+│   ├── index.html
+│   ├── package.json
+│   └── ...
+├── server/                  # Backend code
+│   ├── models/
+│   ├── routes/
+│   ├── services/
+│   ├── utils/
+│   ├── config/
+│   ├── scripts/
+│   ├── package.json
+│   └── ...
+├── .env
+├── .gitignore
+└── README.md
+```
 
 ## Features
 
-- **Hero Page & Authentication**:
-  - Beautiful landing page to display the solution offerings.
-  - Registration with request to join existing organizations.
-  - Authentication using email and password.
+### User Management
+- **Role-Based Access**: User roles include SaaS admin, organization manager, and team member.
+- **Signup and Login**: Secure signup and login processes with JWT token handling.
+- **Profile Management**: Users can view and manage their profiles.
 
-- **User Roles & Management**:
-  - Role-based access control: Admins, Organization Managers, and Team Members.
-  - SAAS admins manage organizations and users from the admin dashboard.
-  - Organization Managers manage their organization's settings and AI Chatbots.
+### Organization Management
+- **Organization Creation**: SaaS admins can create organizations.
+- **User Association**: Users request to join existing organizations, which are approved by SaaS admins.
+- **Industry Field Auto-Population**: The industry field in organization settings displays the current assigned industry.
 
-- **Payment Processing**:
-  - Integrated with Stripe for subscription management.
-  - Access granted only after successful subscription payment.
+### Subscription Management
+- **Stripe Integration**: Subscription payments are processed via Stripe, and users are granted access upon successful payment.
 
-- **AI Chatbot Management**:
-  - Selection of AI models dynamically populated based on chosen AI provider.
-  - CRUD operations on AI chatbots.
-  - Integration with OpenAI to fetch and update the latest AI models.
+### AI Chatbots
+- **Dynamic Model Selection**: AI chatbot models are dynamically populated based on the selected provider, including up-to-date models from OpenAI.
+- **Chatbot CRUD**: Users can create, edit, and delete chatbots within their organizations.
 
-- **Dashboard Features**:
-  - Real-time display of active users.
-  - Subscription plans and payment processing through Stripe.
-
-- **Admin Tools**:
-  - Editing and deleting users and organizations.
-  - Reassignment of users to different organizations.
+### Dashboard
+- **Real-Time Data**: Active user data on the dashboard is updated in real-time.
+- **Navigation Enhancements**: Users can view their profile and logout directly from the side navigation.
 
 ## Getting Started
 
 ### Requirements
 
-To run SaaS Work, you need to have the following installed on your computer:
-- Node.js (v14 or later)
-- npm (v6 or later)
-- MongoDB
+Ensure you have the following technologies installed:
+
+- **Node.js**: >= 14.x.x
+- **npm**: >= 6.x.x
+- **MongoDB**: A running instance of MongoDB
 
 ### Quickstart
 
-1. **Clone the repository**:
-   ```bash
-   git clone <repo_url>
-   cd saas-work
+1. **Clone the Repository**
+   ```sh
+   git clone <repository_url>
+   cd project/
    ```
 
-2. **Set up environment variables**:
-   Create a `.env` file in both `client/` and `server/` directories with the following content and adjust according to your setup:
-   ```ini
-   # .env file for the Server
-   PORT=3000
-   DATABASE_URL=mongodb://localhost:27017/saaswork
-   JWT_SECRET=your_jwt_secret
-   JWT_REFRESH_SECRET=your_jwt_refresh_secret
-   STRIPE_SECRET_KEY=your_stripe_secret_key
-   ```
+2. **Setup Environment Variables**
+   Create a `.env` file with the required configuration settings. Refer to `.env.example` for necessary variables.
 
-3. **Install dependencies**:
-   ```bash
-   # Install server dependencies
-   cd server
+3. **Install Dependencies**
+   ```sh
+   # Install frontend dependencies
+   cd client/
    npm install
-
-   # Install client dependencies
-   cd ../client
+   
+   # Install backend dependencies
+   cd ../server/
    npm install
    ```
 
-4. **Run the development server**:
-   ```bash
-   # You can run both the client and server concurrently using:
+4. **Run the Application**
+   Use concurrently to start both frontend and backend simultaneously.
+   ```sh
    npm run start
-   ```
-
-   This will start the client on [http://localhost:5173](http://localhost:5173) and the server on [http://localhost:3000](http://localhost:3000).
-
-5. **Seed the database** (Optional):
-   ```bash
-   cd server
-   npm run seed
    ```
 
 ### License
 
+The project is proprietary.
+
 ```
-© 2024 Your Company. All rights reserved.
+© 2024 SaaS Work. All rights reserved.
 ```
