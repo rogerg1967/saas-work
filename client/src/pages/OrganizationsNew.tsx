@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getOrganizations, createOrganization, updateOrganization, deleteOrganization } from "@/api/organizations";
+import { getIndustries } from "@/api/industries";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -31,12 +32,35 @@ export function Organizations() {
     name: '',
     industry: '',
   });
+  const [industries, setIndustries] = useState<string[]>([]);
+  const [industryLoading, setIndustryLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
 
   useEffect(() => {
     fetchOrganizations();
   }, []);
+
+  useEffect(() => {
+    const fetchIndustries = async () => {
+      try {
+        setIndustryLoading(true);
+        const response = await getIndustries();
+        setIndustries(response.industries);
+      } catch (error) {
+        console.error("Failed to fetch industries:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load industry options. Please try again.",
+        });
+      } finally {
+        setIndustryLoading(false);
+      }
+    };
+
+    fetchIndustries();
+  }, [toast]);
 
   const fetchOrganizations = async () => {
     try {
@@ -146,18 +170,19 @@ export function Organizations() {
                 <div className="space-y-2">
                   <Label htmlFor="industry">Industry</Label>
                   <Select
+                    disabled={industryLoading}
                     value={formData.industry}
                     onValueChange={(value) => setFormData({ ...formData, industry: value })}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select industry" />
+                    <SelectTrigger id="industry">
+                      <SelectValue placeholder="Select an industry" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Technology">Technology</SelectItem>
-                      <SelectItem value="Healthcare">Healthcare</SelectItem>
-                      <SelectItem value="Finance">Finance</SelectItem>
-                      <SelectItem value="Education">Education</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
+                      {industries.map((industry) => (
+                        <SelectItem key={industry} value={industry}>
+                          {industry}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -223,18 +248,19 @@ export function Organizations() {
             <div className="space-y-2">
               <Label htmlFor="edit-industry">Industry</Label>
               <Select
+                disabled={industryLoading}
                 value={formData.industry}
                 onValueChange={(value) => setFormData({ ...formData, industry: value })}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select industry" />
+                <SelectTrigger id="edit-industry">
+                  <SelectValue placeholder="Select an industry" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Technology">Technology</SelectItem>
-                  <SelectItem value="Healthcare">Healthcare</SelectItem>
-                  <SelectItem value="Finance">Finance</SelectItem>
-                  <SelectItem value="Education">Education</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
+                  {industries.map((industry) => (
+                    <SelectItem key={industry} value={industry}>
+                      {industry}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

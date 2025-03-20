@@ -1,9 +1,16 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Card,
   CardContent,
@@ -15,6 +22,7 @@ import {
 import { useToast } from "@/hooks/useToast"
 import { UserPlus } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import { getIndustries } from "@/api/industries"
 
 type RegisterForm = {
   email: string
@@ -28,10 +36,12 @@ type RegisterForm = {
 
 export function Register() {
   const [loading, setLoading] = useState(false)
+  const [industries, setIndustries] = useState<string[]>([])
+  const [industryLoading, setIndustryLoading] = useState(true)
   const { toast } = useToast()
   const { register: registerUser } = useAuth()
   const navigate = useNavigate()
-  const { register, handleSubmit } = useForm<RegisterForm>({
+  const { register, handleSubmit, setValue, watch } = useForm<RegisterForm>({
     defaultValues: {
       name: "",
       email: "",
@@ -42,6 +52,30 @@ export function Register() {
       }
     }
   })
+
+  // Watch the industry value to update it when selected from dropdown
+  const selectedIndustry = watch("organization.industry")
+
+  useEffect(() => {
+    const fetchIndustries = async () => {
+      try {
+        setIndustryLoading(true)
+        const response = await getIndustries()
+        setIndustries(response.industries)
+      } catch (error) {
+        console.error("Failed to fetch industries:", error)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load industry options. Please try again.",
+        })
+      } finally {
+        setIndustryLoading(false)
+      }
+    }
+
+    fetchIndustries()
+  }, [toast])
 
   const onSubmit = async (data: RegisterForm) => {
     console.log("Form submitted with data:", JSON.stringify(data))
@@ -63,6 +97,11 @@ export function Register() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Handle industry selection
+  const handleIndustryChange = (value: string) => {
+    setValue("organization.industry", value)
   }
 
   return (
@@ -115,12 +154,22 @@ export function Register() {
               </div>
               <div className="space-y-2 mt-2">
                 <Label htmlFor="industry">Industry</Label>
-                <Input
-                  id="industry"
-                  type="text"
-                  placeholder="Enter your industry"
-                  {...register("organization.industry")}
-                />
+                <Select
+                  disabled={industryLoading}
+                  value={selectedIndustry}
+                  onValueChange={handleIndustryChange}
+                >
+                  <SelectTrigger id="industry">
+                    <SelectValue placeholder="Select an industry" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {industries.map((industry) => (
+                      <SelectItem key={industry} value={industry}>
+                        {industry}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
