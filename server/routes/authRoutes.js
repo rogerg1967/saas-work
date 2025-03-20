@@ -125,6 +125,13 @@ router.post('/register', async (req, res) => {
           }
         }
 
+        // If the user is an admin, bypass subscription requirements
+        if (existingUser.role === 'admin') {
+          existingUser.registrationStatus = 'complete';
+          existingUser.paymentVerified = true;
+          existingUser.subscriptionStatus = 'active';
+        }
+
         await existingUser.save();
 
         // Generate tokens
@@ -192,8 +199,8 @@ router.post('/register', async (req, res) => {
     // Log what we're trying to create
     console.log(`Attempting to create user with email: ${email}, name: ${name || ''}, organizationId: ${createdOrganization?._id || 'null'}, role: ${assignedRole}`);
 
-    console.log(`Creating new user with email: ${email}`);
-    const user = await UserService.create({
+    // Prepare user data
+    const userData = {
       email,
       password,
       name: name || '',
@@ -202,7 +209,17 @@ router.post('/register', async (req, res) => {
       subscriptionStatus: 'none',
       paymentVerified: false,
       registrationStatus: 'payment_pending'
-    });
+    };
+
+    // If the user is an admin, bypass subscription requirements
+    if (userData.role === 'admin') {
+      userData.registrationStatus = 'complete';
+      userData.paymentVerified = true;
+      userData.subscriptionStatus = 'active';
+    }
+
+    console.log(`Creating new user with email: ${email}`);
+    const user = await UserService.create(userData);
 
     console.log(`Fetching user with email: ${email}`);
     console.log(`User ${email} created successfully`);
