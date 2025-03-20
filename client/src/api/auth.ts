@@ -35,6 +35,7 @@ export interface AuthResponse {
       isActive: boolean;
       subscriptionStatus: string;
       paymentVerified: boolean;
+      registrationStatus: string;
       createdAt: string;
       lastLoginAt: string;
     };

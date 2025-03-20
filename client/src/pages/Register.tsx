@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/useToast"
 import { UserPlus } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { getIndustries } from "@/api/industries"
+import { createCheckoutSession, getSubscriptionPlans } from "@/api/stripe"
 
 type RegisterForm = {
   email: string
@@ -32,12 +33,15 @@ type RegisterForm = {
     name: string
     industry: string
   }
+  subscriptionPlanId: string
 }
 
 export function Register() {
   const [loading, setLoading] = useState(false)
   const [industries, setIndustries] = useState<string[]>([])
   const [industryLoading, setIndustryLoading] = useState(true)
+  const [subscriptionPlans, setSubscriptionPlans] = useState([])
+  const [plansLoading, setPlansLoading] = useState(true)
   const { toast } = useToast()
   const { register: registerUser } = useAuth()
   const navigate = useNavigate()
@@ -49,12 +53,14 @@ export function Register() {
       organization: {
         name: "",
         industry: ""
-      }
+      },
+      subscriptionPlanId: ""
     }
   })
 
-  // Watch the industry value to update it when selected from dropdown
+  // Watch the industry and subscription plan values to update when selected
   const selectedIndustry = watch("organization.industry")
+  const selectedPlan = watch("subscriptionPlanId")
 
   useEffect(() => {
     const fetchIndustries = async () => {
@@ -74,19 +80,70 @@ export function Register() {
       }
     }
 
+    const fetchSubscriptionPlans = async () => {
+      try {
+        setPlansLoading(true)
+        const data = await getSubscriptionPlans()
+        setSubscriptionPlans(data.plans)
+        // Set default selection to the first plan if available
+        if (data.plans && data.plans.length > 0) {
+          setValue("subscriptionPlanId", data.plans[0].id)
+        }
+      } catch (error) {
+        console.error("Failed to fetch subscription plans:", error)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load subscription plans. Please try again.",
+        })
+      } finally {
+        setPlansLoading(false)
+      }
+    }
+
     fetchIndustries()
-  }, [toast])
+    fetchSubscriptionPlans()
+  }, [toast, setValue])
 
   const onSubmit = async (data: RegisterForm) => {
     console.log("Form submitted with data:", JSON.stringify(data))
     try {
       setLoading(true)
-      await registerUser(data)
+      const response = await registerUser(data)
+
       toast({
         title: "Success",
-        description: "Account created successfully",
+        description: "Account created successfully. Redirecting to payment...",
       })
-      navigate("/subscription")
+
+      // Create a checkout session with the selected plan and redirect to Stripe
+      try {
+        if (!data.subscriptionPlanId) {
+          throw new Error("Please select a subscription plan")
+        }
+
+        console.log("Using plan ID for checkout:", data.subscriptionPlanId)
+
+        const checkoutResponse = await createCheckoutSession(data.subscriptionPlanId)
+        console.log("Checkout response:", checkoutResponse)
+
+        // Check the response structure and access URL correctly
+        if (checkoutResponse.success && checkoutResponse.data && checkoutResponse.data.url) {
+          // Redirect to Stripe checkout using the nested data.url property
+          window.location.href = checkoutResponse.data.url
+        } else {
+          throw new Error("Failed to create checkout session: Missing URL in response")
+        }
+      } catch (stripeError) {
+        console.error("Stripe checkout error:", stripeError)
+        toast({
+          variant: "destructive",
+          title: "Payment Error",
+          description: stripeError.message || "Failed to redirect to payment page. Please try again.",
+        })
+        // Redirect to dashboard instead
+        navigate("/dashboard")
+      }
     } catch (error) {
       console.log("Register error:", error)
       toast({
@@ -102,6 +159,11 @@ export function Register() {
   // Handle industry selection
   const handleIndustryChange = (value: string) => {
     setValue("organization.industry", value)
+  }
+
+  // Handle subscription plan selection
+  const handlePlanChange = (value: string) => {
+    setValue("subscriptionPlanId", value)
   }
 
   return (
@@ -166,6 +228,29 @@ export function Register() {
                     {industries.map((industry) => (
                       <SelectItem key={industry} value={industry}>
                         {industry}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t">
+              <h3 className="text-lg font-medium mb-3">Subscription Plan</h3>
+              <div className="space-y-2">
+                <Label htmlFor="subscriptionPlan">Select a Plan</Label>
+                <Select
+                  disabled={plansLoading}
+                  value={selectedPlan}
+                  onValueChange={handlePlanChange}
+                >
+                  <SelectTrigger id="subscriptionPlan">
+                    <SelectValue placeholder="Select a subscription plan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subscriptionPlans.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        {plan.name} - £{plan.price}/{plan.interval}
                       </SelectItem>
                     ))}
                   </SelectContent>

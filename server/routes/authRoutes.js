@@ -6,7 +6,7 @@ const { generateAccessToken, generateRefreshToken } = require('../utils/auth.js'
 const jwt = require('jsonwebtoken');
 const { randomUUID } = require('crypto');
 const User = require('../models/User.js');
-const { validatePassword } = require('../utils/password.js');
+const { validatePassword, generatePasswordHash } = require('../utils/password.js');
 
 const router = express.Router();
 
@@ -45,6 +45,7 @@ router.post('/login', async (req, res) => {
             isActive: user.isActive,
             subscriptionStatus: user.subscriptionStatus,
             paymentVerified: user.paymentVerified,
+            registrationStatus: user.registrationStatus,
             createdAt: user.createdAt,
             lastLoginAt: user.lastLoginAt
           },
@@ -76,9 +77,94 @@ router.post('/register', async (req, res) => {
 
     // Check if user already exists
     const existingUser = await UserService.getByEmail(email);
+
+    // If user exists but registration is incomplete, update the existing user
     if (existingUser) {
-      console.log(`Registration failed: Email ${email} already in use`);
-      return res.status(400).json({ error: 'Email already in use' });
+      if (existingUser.registrationStatus === 'incomplete' ||
+          existingUser.subscriptionStatus === 'none' ||
+          existingUser.subscriptionStatus === 'pending') {
+
+        console.log(`User ${email} exists with incomplete registration. Updating user data.`);
+
+        // Update user data
+        existingUser.name = name || existingUser.name;
+        existingUser.password = await generatePasswordHash(password);
+        existingUser.registrationStatus = 'payment_pending';
+
+        // If organization info was provided, update or create organization
+        let updatedOrganization = null;
+        if (organization && organization.name) {
+          if (existingUser.organizationId) {
+            // Update existing organization
+            try {
+              updatedOrganization = await OrganizationService.update(
+                existingUser.organizationId,
+                {
+                  name: organization.name,
+                  industry: organization.industry || ''
+                }
+              );
+            } catch (orgError) {
+              console.error(`Failed to update organization: ${orgError.message}`, orgError);
+            }
+          } else {
+            // Create new organization
+            try {
+              updatedOrganization = await OrganizationService.create({
+                name: organization.name,
+                industry: organization.industry || ''
+              });
+
+              // Update user role and organization
+              existingUser.role = 'organization_manager';
+              existingUser.organizationId = updatedOrganization._id;
+            } catch (orgError) {
+              console.error(`Failed to create organization: ${orgError.message}`, orgError);
+              return res.status(400).json({ error: `Organization creation failed: ${orgError.message}` });
+            }
+          }
+        }
+
+        await existingUser.save();
+
+        // Generate tokens
+        const accessToken = generateAccessToken(existingUser);
+        const refreshToken = generateRefreshToken(existingUser);
+
+        // Update user with refresh token
+        existingUser.refreshToken = refreshToken;
+        await existingUser.save();
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            user: {
+              _id: existingUser._id,
+              email: existingUser.email,
+              name: existingUser.name,
+              role: existingUser.role,
+              organizationId: existingUser.organizationId,
+              isActive: existingUser.isActive,
+              subscriptionStatus: existingUser.subscriptionStatus,
+              paymentVerified: existingUser.paymentVerified,
+              registrationStatus: existingUser.registrationStatus,
+              createdAt: existingUser.createdAt,
+              lastLoginAt: existingUser.lastLoginAt
+            },
+            organization: updatedOrganization ? {
+              _id: updatedOrganization._id,
+              name: updatedOrganization.name,
+              industry: updatedOrganization.industry,
+              status: updatedOrganization.status
+            } : undefined,
+            accessToken,
+            refreshToken
+          }
+        });
+      } else {
+        console.log(`Registration failed: Email ${email} already in use`);
+        return res.status(400).json({ error: 'Email already in use' });
+      }
     }
 
     // Check if organization info was provided
@@ -114,7 +200,8 @@ router.post('/register', async (req, res) => {
       organizationId: createdOrganization?._id,
       role: assignedRole,
       subscriptionStatus: 'none',
-      paymentVerified: false
+      paymentVerified: false,
+      registrationStatus: 'payment_pending'
     });
 
     console.log(`Fetching user with email: ${email}`);
@@ -145,6 +232,7 @@ router.post('/register', async (req, res) => {
           isActive: user.isActive,
           subscriptionStatus: user.subscriptionStatus,
           paymentVerified: user.paymentVerified,
+          registrationStatus: user.registrationStatus,
           createdAt: user.createdAt,
           lastLoginAt: user.lastLoginAt
         },
@@ -294,6 +382,7 @@ router.get('/me', requireUser, async (req, res) => {
           isActive: user.isActive,
           subscriptionStatus: user.subscriptionStatus,
           paymentVerified: user.paymentVerified,
+          registrationStatus: user.registrationStatus,
           createdAt: user.createdAt,
           lastLoginAt: user.lastLoginAt
         }
@@ -349,6 +438,7 @@ router.put('/profile', requireUser, async (req, res) => {
           isActive: updatedUser.isActive,
           subscriptionStatus: updatedUser.subscriptionStatus,
           paymentVerified: updatedUser.paymentVerified,
+          registrationStatus: updatedUser.registrationStatus,
           createdAt: updatedUser.createdAt,
           lastLoginAt: updatedUser.lastLoginAt
         }

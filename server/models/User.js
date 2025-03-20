@@ -48,6 +48,11 @@ const schema = new mongoose.Schema({
     enum: ['none', 'pending', 'active', 'cancelled', 'expired'],
     default: 'none',
   },
+  registrationStatus: {
+    type: String,
+    enum: ['incomplete', 'complete', 'payment_pending'],
+    default: 'incomplete',
+  },
   subscriptionId: {
     type: String,
     default: null,

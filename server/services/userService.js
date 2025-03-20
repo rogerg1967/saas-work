@@ -83,7 +83,7 @@ class UserService {
     }
   }
 
-  static async create({ email, password, name = '', organizationId = null, role = 'team_member', subscriptionStatus = 'none', paymentVerified = false }) {
+  static async create({ email, password, name = '', organizationId = null, role = 'team_member', subscriptionStatus = 'none', paymentVerified = false, registrationStatus = 'incomplete' }) {
     if (!email) throw new Error('Email is required');
     if (!password) throw new Error('Password is required');
 
@@ -104,7 +104,8 @@ class UserService {
         organizationId,
         role,
         subscriptionStatus,
-        paymentVerified
+        paymentVerified,
+        registrationStatus
       });
 
       await user.save();
@@ -118,7 +119,7 @@ class UserService {
 
   static async setPassword(user, password) {
     if (!password) throw new Error('Password is required');
-    
+
     console.log(`Setting password for user: ${user.email}`);
     user.password = await generatePasswordHash(password); // eslint-disable-line
 

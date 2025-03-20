@@ -1,10 +1,10 @@
 import api from './api';
 
-// Description: Create Stripe checkout session
+// Description: Create a Stripe checkout session
 // Endpoint: POST /api/subscription/create-checkout-session
-// Request: { planId: string, successUrl?: string, cancelUrl?: string }
-// Response: { success: boolean, data: { sessionId: string, url: string } }
-export const createStripeCheckoutSession = async (planId: string) => {
+// Request: { planId: string }
+// Response: { success: boolean, url: string }
+export const createCheckoutSession = async (planId: string) => {
   try {
     const response = await api.post('/api/subscription/create-checkout-session', {
       planId,
@@ -18,16 +18,19 @@ export const createStripeCheckoutSession = async (planId: string) => {
   }
 };
 
-// Description: Get subscription plans
+// Description: Get available subscription plans
 // Endpoint: GET /api/subscription/plans
 // Request: {}
-// Response: { plans: Array<{ id: string, name: string, price: number, features: string[] }> }
+// Response: { success: boolean, plans: Array<{ id: string, name: string, price: number, features: string[] }> }
 export const getSubscriptionPlans = async () => {
   try {
     const response = await api.get('/api/subscription/plans');
     return response.data.data;
   } catch (error) {
-    console.error(error);
+    console.error('Error fetching subscription plans:', error);
     throw new Error(error?.response?.data?.error || error.message);
   }
 };
+
+// Alias for backward compatibility
+export const createStripeCheckoutSession = createCheckoutSession;
