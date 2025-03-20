@@ -20,6 +20,7 @@ export interface RegisterData {
     industry: string;
   };
   role?: 'admin' | 'organization_manager' | 'team_member';
+  subscriptionPlanId?: string;
 }
 
 // Define interface for auth response

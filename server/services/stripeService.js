@@ -29,6 +29,10 @@ class StripeService {
         throw new Error('User not found');
       }
 
+      // Update user's registration status to payment_pending
+      user.registrationStatus = 'payment_pending';
+      await user.save();
+
       // Create a checkout session with the selected plan
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
@@ -54,7 +58,7 @@ class StripeService {
       console.log(`Checkout session created: ${session.id}`);
       return session;
     } catch (error) {
-      console.error(`Error creating checkout session: ${error.message}`);
+      console.error(`Error creating checkout session: ${error.message}`, error);
       throw new Error(`Failed to create checkout session: ${error.message}`);
     }
   }
@@ -101,7 +105,7 @@ class StripeService {
       console.log(`Payment verified for user: ${userId}`);
       return { success: true, user };
     } catch (error) {
-      console.error(`Error verifying subscription: ${error.message}`);
+      console.error(`Error verifying subscription: ${error.message}`, error);
       throw new Error(`Failed to verify subscription: ${error.message}`);
     }
   }
@@ -155,7 +159,7 @@ class StripeService {
 
       return plans;
     } catch (error) {
-      console.error(`Error fetching subscription plans: ${error.message}`);
+      console.error(`Error fetching subscription plans: ${error.message}`, error);
       throw new Error(`Failed to fetch subscription plans: ${error.message}`);
     }
   }
