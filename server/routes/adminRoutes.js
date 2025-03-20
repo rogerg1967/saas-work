@@ -337,4 +337,100 @@ router.delete('/users/:id', requireUser, async (req, res) => {
   }
 });
 
+// Update user details
+router.put('/users/:id', requireUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, role, organizationId } = req.body;
+
+    console.log('Admin user update request received', {
+      adminUserId: req.user._id,
+      targetUserId: id,
+      updatedFields: { name, email, role, organizationId }
+    });
+
+    // Validate user is admin
+    if (req.user.role !== USER_ROLES.ADMIN) {
+      console.log('Access denied - non-admin user attempted to update user details', {
+        userId: req.user._id,
+        userRole: req.user.role,
+        targetUserId: id
+      });
+      return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
+    }
+
+    // Find the user to update
+    const user = await UserService.get(id);
+    if (!user) {
+      console.log('User not found for update', { userId: id });
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Prepare update data
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (role) {
+      // Check if the role is valid
+      const validRoles = Object.values(USER_ROLES);
+      if (!validRoles.includes(role)) {
+        console.log('Invalid role value provided', {
+          providedRole: role,
+          validRoles
+        });
+        return res.status(400).json({
+          error: `Invalid role. Role must be one of: ${validRoles.join(', ')}`
+        });
+      }
+      updateData.role = role;
+    }
+
+    // Handle organization assignment
+    if (organizationId !== undefined) {
+      if (organizationId === null) {
+        // Remove user from organization
+        updateData.organizationId = null;
+      } else {
+        // Verify the organization exists
+        const organization = await Organization.findById(organizationId);
+        if (!organization) {
+          console.log('Organization not found for user assignment', { organizationId });
+          return res.status(404).json({ error: 'Organization not found' });
+        }
+        updateData.organizationId = organizationId;
+      }
+    }
+
+    // Update the user
+    console.log('Updating user details', {
+      userId: id,
+      updateData
+    });
+
+    const updatedUser = await UserService.update(id, updateData);
+
+    console.log('Successfully updated user details', {
+      userId: updatedUser._id,
+      userName: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      organizationId: updatedUser.organizationId
+    });
+
+    return res.status(200).json({
+      success: true,
+      user: {
+        _id: updatedUser._id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        role: updatedUser.role,
+        organizationId: updatedUser.organizationId
+      }
+    });
+  } catch (error) {
+    console.error(`Error updating user details: ${error.message}`, error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

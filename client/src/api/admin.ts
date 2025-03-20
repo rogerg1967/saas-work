@@ -83,3 +83,22 @@ export const deleteUser = async (id: string) => {
     throw new Error(error?.response?.data?.error || error.message);
   }
 };
+
+// Description: Update user details
+// Endpoint: PUT /api/admin/users/:id
+// Request: { name?: string, email?: string, role?: string, organizationId?: string | null }
+// Response: { success: boolean, user: { _id: string, email: string, name: string, role: string, organizationId: string | null } }
+export const updateUser = async (id: string, data: {
+  name?: string;
+  email?: string;
+  role?: string;
+  organizationId?: string | null;
+}) => {
+  try {
+    const response = await api.put(`/api/admin/users/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating user:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
+};

@@ -25,12 +25,31 @@ import {
   deleteOrganization,
   updateUserRole,
   deleteUser,
+  updateUser,
 } from "@/api/admin";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 export function Admin() {
   const [organizations, setOrganizations] = useState([]);
   const [users, setUsers] = useState([]);
   const { toast } = useToast();
+  const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [editUserForm, setEditUserForm] = useState({
+    name: "",
+    email: "",
+    role: "",
+    organizationId: ""
+  });
 
   useEffect(() => {
     fetchData();
@@ -117,6 +136,52 @@ export function Admin() {
         variant: "destructive",
         title: "Error",
         description: error.message,
+      });
+    }
+  };
+
+  const handleEditUser = (user) => {
+    setCurrentUser(user);
+    setEditUserForm({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      organizationId: user.organization?._id || "none"
+    });
+    setEditUserDialogOpen(true);
+  };
+
+  const handleEditUserFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditUserForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleEditUserSubmit = async () => {
+    try {
+      const formData = {
+        name: editUserForm.name,
+        email: editUserForm.email,
+        role: editUserForm.role,
+        organizationId: editUserForm.organizationId === "none" ? null : editUserForm.organizationId
+      };
+
+      await updateUser(currentUser._id, formData);
+
+      toast({
+        title: "Success",
+        description: "User updated successfully"
+      });
+
+      setEditUserDialogOpen(false);
+      fetchData(); // Refresh the data
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message
       });
     }
   };
@@ -231,6 +296,9 @@ export function Admin() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                      Edit User
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleDeleteUser(user._id)}>
                       Delete User
                     </DropdownMenuItem>
@@ -261,6 +329,88 @@ export function Admin() {
           ))}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={editUserDialogOpen} onOpenChange={setEditUserDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Make changes to the user details here. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="name"
+                name="name"
+                value={editUserForm.name}
+                onChange={handleEditUserFormChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="email" className="text-right">
+                Email
+              </Label>
+              <Input
+                id="email"
+                name="email"
+                value={editUserForm.email}
+                onChange={handleEditUserFormChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="role" className="text-right">
+                Role
+              </Label>
+              <Select
+                value={editUserForm.role}
+                onValueChange={(value) => setEditUserForm(prev => ({ ...prev, role: value }))}
+              >
+                <SelectTrigger className="w-full col-span-3">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="organization_manager">Manager</SelectItem>
+                  <SelectItem value="team_member">User</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="organization" className="text-right">
+                Organization
+              </Label>
+              <Select
+                value={editUserForm.organizationId}
+                onValueChange={(value) => setEditUserForm(prev => ({ ...prev, organizationId: value }))}
+              >
+                <SelectTrigger className="w-full col-span-3">
+                  <SelectValue placeholder="Select organization" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {organizations.map((org) => (
+                    <SelectItem key={org._id} value={org._id}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditUserDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditUserSubmit}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
