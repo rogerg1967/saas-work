@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, MessageSquare, Bot } from "lucide-react";
+import { Plus, MessageSquare, Bot, Edit, Trash2, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -10,12 +10,30 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getChatbots, createChatbot, getOrganizationsForAdmin } from "@/api/chat";
+import { updateChatbot, deleteChatbot } from "@/api/chatbots";
 import { getAvailableModels } from "@/api/messages";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,7 +45,10 @@ export function Chatbots() {
   const [filteredModels, setFilteredModels] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedOrganization, setSelectedOrganization] = useState("");
+  const [selectedChatbot, setSelectedChatbot] = useState(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -35,6 +56,13 @@ export function Chatbots() {
   const isAdmin = user?.role === 'admin';
 
   const [formData, setFormData] = useState({
+    name: "",
+    model: "",
+    provider: "OpenAI",
+    description: "",
+  });
+
+  const [editFormData, setEditFormData] = useState({
     name: "",
     model: "",
     provider: "OpenAI",
@@ -66,6 +94,22 @@ export function Chatbots() {
       }));
     }
   }, [formData.provider, models]);
+
+  useEffect(() => {
+    // Filter models when provider changes for edit form
+    if (models.length > 0) {
+      const filtered = models.filter(model =>
+        model.provider.toLowerCase() === editFormData.provider.toLowerCase()
+      );
+      setFilteredModels(filtered);
+
+      // Reset selected model when provider changes
+      setEditFormData(prev => ({
+        ...prev,
+        model: filtered.length > 0 ? filtered[0].id : ""
+      }));
+    }
+  }, [editFormData.provider, models]);
 
   const fetchChatbots = async () => {
     try {
@@ -130,12 +174,12 @@ export function Chatbots() {
   const handleCreateChatbot = async () => {
     try {
       setIsLoading(true);
-      
+
       const requestData = {
         ...formData,
         ...(isAdmin && { organizationId: selectedOrganization }) // Only include organizationId for admin users
       };
-      
+
       const result = await createChatbot(requestData);
       if (result.success) {
         toast({
@@ -154,6 +198,75 @@ export function Chatbots() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleEditChatbot = (chatbot) => {
+    setSelectedChatbot(chatbot);
+    setEditFormData({
+      name: chatbot.name,
+      model: chatbot.model,
+      provider: chatbot.provider,
+      description: chatbot.description,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateChatbot = async () => {
+    try {
+      setIsLoading(true);
+      const result = await updateChatbot(selectedChatbot._id, editFormData);
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Chatbot updated successfully",
+        });
+        setIsEditDialogOpen(false);
+        fetchChatbots();
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteConfirm = (chatbot) => {
+    setSelectedChatbot(chatbot);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteChatbot = async () => {
+    try {
+      setIsLoading(true);
+      const result = await deleteChatbot(selectedChatbot._id);
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message || "Chatbot deleted successfully",
+        });
+        setIsDeleteDialogOpen(false);
+        fetchChatbots();
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCardClick = (e, chatbot) => {
+    // Only navigate if the click wasn't on the dropdown or its children
+    if (!e.target.closest('.dropdown-menu')) {
+      navigate(`/chatbots/${chatbot._id}`);
     }
   };
 
@@ -244,7 +357,7 @@ export function Chatbots() {
                   placeholder="Enter chatbot description"
                 />
               </div>
-              
+
               {/* Only show organization selection for admin users */}
               {isAdmin && (
                 <div className="space-y-2">
@@ -266,7 +379,7 @@ export function Chatbots() {
                   </Select>
                 </div>
               )}
-              
+
               <Button
                 onClick={handleCreateChatbot}
                 className="w-full"
@@ -284,13 +397,43 @@ export function Chatbots() {
           <Card
             key={bot._id}
             className="hover:shadow-lg transition-shadow cursor-pointer"
-            onClick={() => navigate(`/chatbots/${bot._id}`)}
+            onClick={(e) => handleCardClick(e, bot)}
           >
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="flex items-center">
                 <span>{bot.name}</span>
-                <Bot className="h-5 w-5 text-primary" />
               </CardTitle>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="h-8 w-8 p-0 dropdown-menu"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span className="sr-only">Open menu</span>
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditChatbot(bot);
+                  }}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteConfirm(bot);
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
@@ -307,6 +450,122 @@ export function Chatbots() {
           </Card>
         ))}
       </div>
+
+      {/* Edit Chatbot Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Chatbot</DialogTitle>
+            <DialogDescription>
+              Update your chatbot configuration
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name</Label>
+              <Input
+                id="edit-name"
+                value={editFormData.name}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, name: e.target.value })
+                }
+                placeholder="Enter chatbot name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-provider">Provider</Label>
+              <Select
+                value={editFormData.provider}
+                onValueChange={(value) => {
+                  setEditFormData({
+                    ...editFormData,
+                    provider: value,
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select AI provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OpenAI">OpenAI</SelectItem>
+                  <SelectItem value="Anthropic">Anthropic</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-model">AI Model</Label>
+              <Select
+                value={editFormData.model}
+                onValueChange={(value) => {
+                  setEditFormData({
+                    ...editFormData,
+                    model: value,
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select AI model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredModels.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={editFormData.description}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, description: e.target.value })
+                }
+                placeholder="Enter chatbot description"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateChatbot}
+              disabled={isLoading}
+            >
+              {isLoading ? "Updating..." : "Update Chatbot"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the chatbot "{selectedChatbot?.name}" and all associated messages.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDeleteChatbot}
+              disabled={isLoading}
+            >
+              {isLoading ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

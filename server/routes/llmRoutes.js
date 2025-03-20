@@ -121,4 +121,43 @@ router.get('/models', requireUser, (req, res) => {
   }
 });
 
+/**
+ * @route GET /models
+ * @desc Get available models for chat
+ * @access Private
+ */
+router.get('/models', requireUser, (req, res) => {
+  try {
+    console.log('Fetching available chat models');
+
+    // Get provider from query parameter or return all models
+    const { provider } = req.query;
+    let models;
+
+    if (provider) {
+      models = AIModelService.getModelsByProvider(provider);
+      console.log(`Fetched ${models.length} chat models for provider: ${provider}`);
+    } else {
+      models = AIModelService.getAvailableModels();
+      console.log(`Fetched ${models.length} chat models from all providers`);
+    }
+
+    // Filter to only include models that support 'text' capability
+    const chatModels = models.filter(model =>
+      model.capabilities.includes('text')
+    );
+
+    res.json({
+      success: true,
+      models: chatModels
+    });
+  } catch (error) {
+    console.error('Error fetching chat models:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch chat models'
+    });
+  }
+});
+
 module.exports = router;

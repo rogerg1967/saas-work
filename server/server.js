@@ -61,6 +61,8 @@ app.use('/api/stripe', stripeWebhooks);
 app.use('/api/organizations', organizationRoutes);
 // Chatbot Routes
 app.use('/api/chatbots', chatbotRoutes);
+// Messages Routes
+app.use('/api/messages', llmRoutes);
 // Team Routes
 app.use('/api/team', teamRoutes);
 // Admin Routes

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const ChatbotService = require('../services/chatbotService');
 const MessageService = require('../services/messageService');
+const AIModelService = require('../services/aiModelService');
 const { requireUser } = require('./middleware/auth');
 const { requireSubscription } = require('./middleware/subscriptionCheck');
 const { uploadSingleImage } = require('./middleware/upload');
@@ -44,10 +45,15 @@ router.get('/:id', requireUser, requireSubscription, async (req, res) => {
       return res.status(404).json({ error: 'Chatbot not found' });
     }
 
-    // Verify the chatbot belongs to the user's organization
-    if (chatbot.organizationId.toString() !== req.user.organizationId.toString()) {
-      console.warn(`User from organization ${req.user.organizationId} attempted to access chatbot from organization ${chatbot.organizationId}`);
-      return res.status(403).json({ error: 'You do not have permission to access this chatbot' });
+    // Skip organization check for admin users
+    if (req.user.role !== 'admin') {
+      // Verify the chatbot belongs to the user's organization
+      if (chatbot.organizationId.toString() !== req.user.organizationId.toString()) {
+        console.warn(`User from organization ${req.user.organizationId} attempted to access chatbot from organization ${chatbot.organizationId}`);
+        return res.status(403).json({ error: 'You do not have permission to access this chatbot' });
+      }
+    } else {
+      console.log(`Admin user accessing chatbot from organization ${chatbot.organizationId}`);
     }
 
     console.log(`Successfully retrieved chatbot: ${chatbot.name}`);
@@ -137,6 +143,47 @@ router.post('/', requireUser, requireSubscription, async (req, res) => {
   }
 });
 
+/**
+ * @route PUT /api/chatbots/:id
+ * @desc Update a chatbot
+ * @access Private
+ */
+router.put('/:id', requireUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, model, provider } = req.body;
+    const userId = req.user._id;
+
+    // Validate required fields
+    if (!name || !description || !model || !provider) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields'
+      });
+    }
+
+    // Update the chatbot
+    const updatedChatbot = await ChatbotService.updateChatbot(id, {
+      name,
+      description,
+      model,
+      provider,
+      userId
+    });
+
+    res.json({
+      success: true,
+      chatbot: updatedChatbot
+    });
+  } catch (error) {
+    console.error('Error updating chatbot:', error);
+    res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || 'Failed to update chatbot'
+    });
+  }
+});
+
 // Delete a chatbot
 router.delete('/:id', requireUser, requireSubscription, async (req, res) => {
   try {
@@ -148,10 +195,15 @@ router.delete('/:id', requireUser, requireSubscription, async (req, res) => {
       return res.status(404).json({ error: 'Chatbot not found' });
     }
 
-    // Verify the chatbot belongs to the user's organization
-    if (chatbot.organizationId.toString() !== req.user.organizationId.toString()) {
-      console.warn(`User from organization ${req.user.organizationId} attempted to delete chatbot from organization ${chatbot.organizationId}`);
-      return res.status(403).json({ error: 'You do not have permission to delete this chatbot' });
+    // Skip organization check for admin users
+    if (req.user.role === 'admin') {
+      console.log(`Admin user deleting chatbot with ID: ${req.params.id}`);
+    } else {
+      // For non-admin users, verify the chatbot belongs to the user's organization
+      if (chatbot.organizationId.toString() !== req.user.organizationId.toString()) {
+        console.warn(`User from organization ${req.user.organizationId} attempted to delete chatbot from organization ${chatbot.organizationId}`);
+        return res.status(403).json({ error: 'You do not have permission to delete this chatbot' });
+      }
     }
 
     await ChatbotService.delete(req.params.id);
@@ -260,6 +312,84 @@ router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage,
   } catch (error) {
     console.error(`Error processing message: ${error.message}`, error);
     res.status(500).json({ error: `Failed to process message: ${error.message}` });
+  }
+});
+
+// Update chatbot settings
+router.put('/:id/settings', requireUser, requireSubscription, async (req, res) => {
+  try {
+    console.log(`Updating settings for chatbot with ID: ${req.params.id}`);
+    const chatbot = await ChatbotService.getById(req.params.id);
+
+    if (!chatbot) {
+      console.log(`Chatbot with ID ${req.params.id} not found`);
+      return res.status(404).json({ error: 'Chatbot not found' });
+    }
+
+    // Verify the chatbot belongs to the user's organization or user is admin
+    if (req.user.role !== 'admin' && chatbot.organizationId.toString() !== req.user.organizationId.toString()) {
+      console.warn(`User from organization ${req.user.organizationId} attempted to update chatbot from organization ${chatbot.organizationId}`);
+      return res.status(403).json({ error: 'You do not have permission to update this chatbot' });
+    }
+
+    const { provider, model } = req.body;
+
+    if (!provider || !model) {
+      return res.status(400).json({ error: 'Provider and model are required' });
+    }
+
+    // Update the chatbot with new settings
+    chatbot.provider = provider.toLowerCase();
+    chatbot.model = model;
+    await chatbot.save();
+
+    console.log(`Successfully updated settings for chatbot: ${chatbot.name}`);
+    res.json({
+      success: true,
+      chatbot
+    });
+  } catch (error) {
+    console.error(`Error updating chatbot settings: ${error.message}`, error);
+    res.status(500).json({ error: `Failed to update chatbot settings: ${error.message}` });
+  }
+});
+
+/**
+ * @route GET /api/messages/models
+ * @desc Get available models for chat
+ * @access Private
+ */
+router.get('/models', requireUser, (req, res) => {
+  try {
+    console.log('Fetching available chat models');
+
+    // Get provider from query parameter or return all models
+    const { provider } = req.query;
+    let models;
+
+    if (provider) {
+      models = AIModelService.getModelsByProvider(provider);
+      console.log(`Fetched ${models.length} chat models for provider: ${provider}`);
+    } else {
+      models = AIModelService.getAvailableModels();
+      console.log(`Fetched ${models.length} chat models from all providers`);
+    }
+
+    // Filter to only include models that support 'text' capability
+    const chatModels = models.filter(model =>
+      model.capabilities.includes('text')
+    );
+
+    res.json({
+      success: true,
+      models: chatModels
+    });
+  } catch (error) {
+    console.error('Error fetching chat models:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch chat models'
+    });
   }
 });
 

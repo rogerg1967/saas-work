@@ -45,16 +45,17 @@ export const getChatHistory = async (chatbotId: string) => {
   }
 };
 
-// Description: Get available LLM models
-// Endpoint: GET /api/llm/models
-// Request: {}
-// Response: { models: Array<{ id: string, name: string, provider: string, capabilities: string[] }> }
-export const getAvailableModels = async () => {
+// Description: Get available AI models for chat
+// Endpoint: GET /api/messages/models
+// Request: { provider?: string }
+// Response: { success: boolean, models: Array<{ id: string, name: string, provider: string, capabilities: string[] }> }
+export const getAvailableModels = async (provider?: string) => {
   try {
-    const response = await api.get('/api/llm/models');
+    const params = provider ? { provider } : {};
+    const response = await api.get('/api/messages/models', { params });
     return response.data;
   } catch (error) {
-    console.error('Error getting available models:', error);
+    console.error('Error fetching available models:', error);
     throw new Error(error?.response?.data?.error || error.message);
   }
 };

@@ -19,6 +19,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { updateChatbotSettings, getChatbot } from "@/api/chat";
 
 type Message = {
   id: string;
@@ -46,6 +47,7 @@ export function Chat() {
   const [filteredModels, setFilteredModels] = useState<Model[]>([]);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [chatbot, setChatbot] = useState(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -54,7 +56,7 @@ export function Chat() {
     if (id) {
       fetchChatHistory();
       fetchModels();
-      fetchLLMSettings();
+      fetchChatbot();
     }
   }, [id]);
 
@@ -65,14 +67,17 @@ export function Chat() {
   useEffect(() => {
     // Filter models when provider changes
     if (models.length > 0) {
+      console.log(`Filtering models for provider: ${selectedProvider}`);
       const filtered = models.filter(model =>
         model.provider.toLowerCase() === selectedProvider.toLowerCase()
       );
+      console.log(`Found ${filtered.length} models for provider ${selectedProvider}`);
       setFilteredModels(filtered);
 
       // Set the first model of the filtered list as selected if no model is selected
       // or the currently selected model isn't from the current provider
       if (!selectedModel || !filtered.find(m => m.id === selectedModel)) {
+        console.log(`Setting default model to ${filtered[0]?.id || ""}`);
         setSelectedModel(filtered[0]?.id || "");
       }
     }
@@ -106,6 +111,40 @@ export function Chat() {
     }
   };
 
+  const fetchChatbot = async () => {
+    try {
+      const data = await getChatbot(id);
+      setChatbot(data.chatbot);
+      console.log("Successfully fetched chatbot details");
+
+      // If chatbot has provider and model set, use those instead of global settings
+      if (data.chatbot.provider && data.chatbot.model) {
+        // Capitalize the first letter of the provider name for display in the UI dropdown
+        const providerName = data.chatbot.provider.charAt(0).toUpperCase() + data.chatbot.provider.slice(1);
+        console.log(`Setting provider to ${providerName} and model to ${data.chatbot.model} from chatbot settings`);
+
+        // Set the provider first to trigger the useEffect that filters models
+        setSelectedProvider(providerName);
+
+        // Then set the model
+        setSelectedModel(data.chatbot.model);
+      } else {
+        // Otherwise, fall back to global settings
+        console.log("No chatbot-specific settings found, falling back to global settings");
+        fetchLLMSettings();
+      }
+    } catch (error) {
+      console.error("Error fetching chatbot:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load chatbot details",
+      });
+      // Fall back to global settings if fetching chatbot fails
+      fetchLLMSettings();
+    }
+  };
+
   const fetchLLMSettings = async () => {
     try {
       const data = await getLLMSettings();
@@ -119,6 +158,31 @@ export function Chat() {
         variant: "destructive",
         title: "Error",
         description: "Failed to load LLM settings",
+      });
+    }
+  };
+
+  const saveChatbotSettings = async () => {
+    try {
+      if (!id) return;
+
+      console.log(`Saving settings: provider=${selectedProvider.toLowerCase()}, model=${selectedModel}`);
+
+      await updateChatbotSettings(id, {
+        provider: selectedProvider.toLowerCase(), // Make sure provider is lowercase for backend
+        model: selectedModel
+      });
+
+      toast({
+        title: "Success",
+        description: "Chat settings saved successfully",
+      });
+    } catch (error) {
+      console.error("Error saving chatbot settings:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to save settings",
       });
     }
   };
@@ -270,6 +334,12 @@ export function Chat() {
                     </SelectContent>
                   </Select>
                 </div>
+                <Button
+                  className="w-full mt-4"
+                  onClick={saveChatbotSettings}
+                >
+                  Save Settings
+                </Button>
               </div>
             </SheetContent>
           </Sheet>

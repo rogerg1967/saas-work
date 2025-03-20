@@ -91,3 +91,36 @@ export const getOrganizationsForAdmin = async () => {
     throw new Error(error?.response?.data?.error || error.message);
   }
 };
+
+// Description: Update chatbot settings
+// Endpoint: PUT /api/chatbots/:id/settings
+// Request: { provider: string, model: string }
+// Response: { success: boolean, chatbot: { _id: string, name: string, ... } }
+export const updateChatbotSettings = async (
+  chatbotId: string,
+  settings: { provider: string; model: string }
+) => {
+  try {
+    const response = await api.put(`/api/chatbots/${chatbotId}/settings`, settings);
+    console.log('Successfully updated chatbot settings');
+    return response.data;
+  } catch (error) {
+    console.error('Error updating chatbot settings:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
+};
+
+// Description: Get a specific chatbot
+// Endpoint: GET /api/chatbots/:id
+// Request: {}
+// Response: { chatbot: { _id: string, name: string, provider: string, model: string, ... } }
+export const getChatbot = async (chatbotId: string) => {
+  try {
+    const response = await api.get(`/api/chatbots/${chatbotId}`);
+    console.log('Successfully fetched chatbot details');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching chatbot:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
+};
