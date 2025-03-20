@@ -6,7 +6,7 @@ const { generateAccessToken, generateRefreshToken } = require('../utils/auth.js'
 const jwt = require('jsonwebtoken');
 const { randomUUID } = require('crypto');
 const User = require('../models/User.js');
-const { validatePassword } = require('../utils/auth.js');
+const { validatePassword } = require('../utils/password.js');
 
 const router = express.Router();
 

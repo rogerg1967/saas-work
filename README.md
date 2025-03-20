@@ -1,75 +1,90 @@
 # SaaS Work
 
-SaaS Work is a platform designed to provide UK GDPR compliant AI chatbots to organisations. It leverages the power of VueJS and Tailwind CSS for its frontend, and includes a robust backend with REST API endpoints, MongoDB for data storage, and Stripe for managing subscription payments.
+SaaS Work is a comprehensive SAAS platform designed to provide UK GDPR-compliant AI chatbots to organizations. Built using Vue.js and Tailwind CSS for the frontend, and a MongoDB database for data storage. The primary objective of the platform is to offer customizable AI chatbots that adhere to stringent data protection standards, facilitating seamless communication and engagement for businesses.
 
 ## Overview
 
-SaaS Work is built with a modern tech stack encompassing a VueJS frontend styled with Tailwind CSS, and an ExpressJS backend. It is designed to ensure that organisations can deploy GDPR-compliant AI chatbots easily while managing users, subscriptions, and organisations efficiently.
+SaaS Work employs a modern tech stack to ensure scalability, reliability, and ease of use. The platform is structured into two main components:
 
-### Architecture and Technologies
+### Architecture and Technologies Used
 - **Frontend**:
-  - **VueJS**: JavaScript framework for building interactive user interfaces.
-  - **Tailwind CSS**: Utility-first CSS framework for styling.
-  - **Client Folder Structure**:
-    - `client/src/pages/`: Contains the main page components.
-    - `client/src/components/`: Reusable components.
-    - `client/src/api/`: Centralized API request files.
-    - `vite.config.ts`: Vite build tool configuration for development and production environments.
+  - Hosted in the `client/` folder
+  - Developed using ReactJS with Vite as the development server
+  - Styled using Tailwind CSS integrated with shadcn-ui component library
+  - Client-side routing with `react-router-dom`
+  - Runs on port 5173
 
 - **Backend**:
-  - **Express**: A web application framework for Node.js.
-  - **REST API**: Implements endpoints for various functionalities such as authentication, user management, organisation management, and AI chatbot operations.
-  - **MongoDB**: Document-oriented database for storing user, chatbot, and organisational data.
-  - **Mongoose**: ORM for MongoDB.
-  - **Token-based Authentication**: Access and refresh tokens for user session management.
-  - **Stripe**: Payment processing.
+  - Hosted in the `server/` folder
+  - Built using Express.js to serve REST API endpoints
+  - MongoDB as the database, interfaced with Mongoose
+  - Handles authentication through token-based (JWT) methods
+  - Runs on port 3000
 
 ### Project Structure
+The project directory is divided into `client/` for the frontend and `server/` for the backend.
 
-- `client/`: Contains the frontend code:
-  - `components/`: Reusable UI components using Shadcn UI.
-  - `pages/`: Page components like Home, Login, Register, Dashboard, etc.
-  - `api/`: Files that define API requests and manage mocked data during development.
-  - `styles/`: Tailwind CSS configurations and global styles.
-- `server/`: Contains the backend code:
-  - `routes/`: API endpoint definitions and middleware for handling authentication and authorization.
-  - `models/`: Mongoose schemas for data models like User, Organization, Chatbot, etc.
-  - `services/`: Business logic encapsulated in service classes.
-  - `utils/`: Utility functions for authentication and password management.
-- `package.json`: Configuration and dependencies for the project.
+- **Frontend**:
+  - `client/src/pages/`: Contains page components like Home, Login, Register, Dashboard, etc.
+  - `client/src/components/`: Reusable UI components
+  - `client/src/api/`: Handles API requests to the backend
+  - `client/tailwind.config.js`: Tailwind CSS configuration
+
+- **Backend**:
+  - `server/routes/`: Express routes for handling various backend functionalities
+  - `server/services/`: Services implementing the core business logic
+  - `server/models/`: Mongoose schemas and models for MongoDB collections
+  - `server/utils/`: Utility functions, including authentication and password handling
 
 ## Features
 
-- **Role-based Access Control**: Different roles including Admin, Organisation Manager, and Team Member.
-- **GDPR Compliant AI Chatbots**: Only admins can add organisations, users request to join existing organisations.
-- **User Registration and Authentication**: Secure registration and login with token-based authentication.
-- **Subscription Management via Stripe**: Users must make a subscription payment to gain access.
-- **Dynamic AI Model Selection**: Choose from latest AI models based on the selected AI provider.
-- **Real-time Data Updates**: Displays active users and their activities in real-time.
-- **CRUD Operations for Users and Chatbots**: Admin functionalities to create, edit, and delete users and chatbots.
-- **Error Handling**: User-friendly error messages and validation feedback.
+SaaS Work is packed with features to enhance user experience and administrative control:
 
-## Getting started
+- **User Management**:
+  - Role-based access with different tiers i.e., SAAS Admin, Organization Manager, and Team Members
+  - User registration with org joining requests needing approval
+  - Profile management including password update functionality
+
+- **AI Chatbots**:
+  - Admin-defined chatbot models, dynamically populated based on the selected AI provider
+  - Real-time data integration with OpenAI for fetching and updating AI models
+  - CRUD operations on chatbots
+
+- **Subscriptions**:
+  - Stripe integration for handling subscription payments
+  - Access control based on subscription status
+
+- **Dashboard**:
+  - Real-time display of active users
+  - Comprehensive management of organizations and users
+
+- **Other Functionalities**:
+  - Side navigation with user profile link and logout option
+  - Industry field auto-completion from the database
+  - Implemented a friendly error messaging system
+
+## Getting Started
 
 ### Requirements
 
-To run SaaS Work, you'll need the following installed on your computer:
-- **Node.js** (>=14.x)
-- **npm** (Node Package Manager, comes with Node.js)
-- **MongoDB** (Database)
+To set up and run the SaaS Work platform locally, you need the following:
+- Node.js (v12.x or higher)
+- npm (v6.x or higher)
+- MongoDB (v4.x or higher)
+- Stripe account for integrating payment processing
 
 ### Quickstart
 
-Following these steps will set up and run the project locally:
+Follow these steps to get the project up and running:
 
-1. **Clone the Repository**:
-   ```sh
-   git clone <repository-url>
-   cd <repository-directory>
+1. **Clone the Repository**
+   ```bash
+   git clone <repository_url>
+   cd saas-work
    ```
 
-2. **Install Dependencies**:
-   ```
+2. **Install Dependencies**
+   ```bash
    npm install
    cd client
    npm install
@@ -77,28 +92,33 @@ Following these steps will set up and run the project locally:
    npm install
    ```
 
-3. **Set Up Environment Variables**:
-   Create a `.env` file in both the `client` and `server` directories and add the necessary configuration as specified in the `.env.example` files.
+3. **Configure Environment Variables**
+   - Create a `.env` file in the root, `client/` and `server/` folders:
+     ```bash
+     # .env
+     PORT=3000
+     MONGO_URI=<MongoDB connection string>
+     JWT_SECRET=<Your JWT secret>
+     STRIPE_SECRET_KEY=<Your Stripe secret key>
+     ```
 
-4. **Start MongoDB**:
-   Ensure you have a MongoDB instance running. You can start one locally with:
-   ```sh
-   mongod
+4. **Seed the Database**
+   (optional) If you wish to seed initial data, run:
+   ```bash
+   node server/scripts/seed.js
    ```
 
-5. **Run the Project**:
-   Run the following command from the root directory to start both the client and server:
-   ```sh
+5. **Run the Development Server**
+   ```bash
    npm run start
    ```
 
-6. **Access the Application**:
-   Open your browser and navigate to `http://localhost:5173` to access the frontend.
+6. **Access the Application**
+   Open your browser and navigate to `http://localhost:5173`.
 
 ### License
 
-The project is proprietary. All rights reserved.
-
-```text
-Copyright (c) 2024.
+The project is proprietary. 
+```
+© 2024 SaaS Work. All rights reserved.
 ```
