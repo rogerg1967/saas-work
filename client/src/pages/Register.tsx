@@ -127,9 +127,9 @@ export function Register() {
         const checkoutResponse = await createCheckoutSession(data.subscriptionPlanId)
         console.log("Checkout response:", checkoutResponse)
 
-        // Check the response structure and access URL correctly
+        // Check if the response is successful and contains a URL
         if (checkoutResponse.success && checkoutResponse.data && checkoutResponse.data.url) {
-          // Redirect to Stripe checkout using the nested data.url property
+          // Redirect to Stripe checkout
           window.location.href = checkoutResponse.data.url
         } else {
           throw new Error("Failed to create checkout session: Missing URL in response")

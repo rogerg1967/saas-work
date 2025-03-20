@@ -1,119 +1,120 @@
+```markdown
 # SaaS Work
 
-"SaaS Work" is a SaaS platform designed to provide UK GDPR compliant AI chatbots to organizations using Vue.js, Tailwind CSS, and a MongoDB database. The platform offers a detailed and professional hero page, role-based access control, dynamic AI chatbot integration, subscription management via Stripe, and a rich set of admin and user functionality.
+SaaS Work is a comprehensive software-as-a-service (SaaS) platform designed using Vue.js and Tailwind CSS with a MongoDB database. The primary goal of the platform is to provide UK GDPR-compliant AI chatbots to organizations. The platform includes a detailed hero page showcasing offerings and a pricing section that encourages user engagement from the first interaction. The platform is role-based, including functionalities for organizational management, subscription management, and chatbot management.
 
 ## Overview
 
-The architecture leverages a robust stack with front-end rendered by React.js and Backend powered by Node.js and Express. This project uses Vue.js for component-centric development and Tailwind CSS for efficient styling. MongoDB serves as the primary database, enabling flexible, schema-less data management.
+SaaS Work employs a modern architecture with separate front-end and back-end services to ensure scalability and maintainability. The front end is built using React with Vite, while the back end is an Express-based server. Tailwind CSS is used for styling, and MongoDB is the database of choice.
+
+### Architecture
+- **Frontend:** ReactJS, Vite, Tailwind CSS
+- **Backend:** ExpressJS, MongoDB, Mongoose
+- **Authentication:** JWT for token-based authentication
+- **Payment Gateway:** Stripe for subscription management
 
 ### Project Structure
-The project consists of two main parts:
 
-1. **Frontend**
-   - Located in the `client/` directory.
-   - Built with React.js with Vite as the dev server.
-   - Uses Tailwind CSS for styling and shadcn-ui component library.
-   - Client-side routing is implemented using `react-router-dom`.
-
-2. **Backend**
-   - Located in the `server/` directory.
-   - Built with Node.js and Express framework.
-   - Uses MongoDB with Mongoose for database operations.
-   - Implements REST API endpoints.
-
-**Directory Structure:**
 ```
-saas-work/
-├── client/
-│   ├── public/
+/
+├── client/                   # Frontend codebase
 │   ├── src/
-│   │   ├── api/
-│   │   ├── components/
-│   │   ├── contexts/
-│   │   ├── hooks/
-│   │   ├── pages/
-│   │   ├── styles/
-│   │   ├── index.css
-│   │   ├── main.tsx
-│   └── package.json
-├── server/
-│   ├── models/
-│   ├── routes/
-│   ├── scripts/
-│   ├── services/
-│   ├── utils/
-│   ├── config/
-│   └── .env
-└── README.md
+│   │   ├── api/              # API request files
+│   │   ├── components/       # Reusable UI components
+│   │   ├── contexts/         # React contexts
+│   │   ├── hooks/            # Custom hooks
+│   │   ├── pages/            # Page components
+│   │   ├── services/         # Services for subscription handling
+│   │   ├── App.tsx           # Main application component
+│   │   └── main.tsx          # Application entry point
+│   ├── public/               # Public assets
+│   ├── index.html            # Main HTML entry point
+│   ├── package.json          # Frontend dependencies and scripts
+│   └── tailwind.config.js    # Tailwind CSS configuration
+├── server/                   # Backend codebase
+│   ├── models/               # Mongoose models
+│   ├── routes/               # API routes
+│   ├── scripts/              # Database seeding scripts
+│   ├── services/             # Business logic services
+│   ├── utils/                # Utility functions
+│   ├── server.js             # Server entry point
+│   └── package.json          # Backend dependencies and scripts
+├── .env                      # Environment variables configuration
+├── .gitignore                # Files ignored by Git
+└── README.md                 # Project documentation
 ```
+
 
 ## Features
 
-- **Hero Page**: Detailed landing page with comprehensive information about the platform's offerings, and a prominently featured pricing section leading to the registration process.
-- **Role-Based Access Control**: Different roles like SaaS Admin, Organization Manager, and Team Member with restricted access based on roles.
-- **Organization Management**: Only SaaS Admins can create organizations; users request to join existing organizations.
-- **Subscription Management**: Users must subscribe via Stripe before accessing the application.
-- **AI Chatbot Management**: Dynamic AI chatbot integration based on selected AI provider, including the latest OpenAI models.
-- **Real-time Data**: Real-time data display for active users and chatbot messages.
-- **User and Organization Management**: Interface to manage users and organizations, including CRUD operations, via admin roles.
-- **Profile Management**: Users can update personal details and reset passwords.
+- **User Management:**
+  - Role-based access control (Admin, Organization Manager, and Team Member roles)
+  - User registration, login, and profile management
+  - Password reset functionality
 
-## Getting Started
+- **Organization Management:**
+  - SaaS Admins can add organizations
+  - Users can request to join existing organizations
+  - CRUD operations for organizations
+
+- **Subscription Management:**
+  - Subscription plans and Stripe integration
+  - User subscription management (create, update, cancel subscriptions)
+
+- **Chatbot Management:**
+  - AI chatbot creation, editing, and deletion
+  - Integration with AI providers like OpenAI
+  - Real-time updates of available AI models
+
+- **Admin Features:**
+  - Admin dashboard for managing users and organizations
+  - Real-time active user tracking and analytics
+
+## Getting started
 
 ### Requirements
 
-Ensure you have the following installed:
-- Node.js (v16+)
-- npm (v7+)
-- MongoDB (v4.4+)
-- Stripe account for payment processing
+- Node.js (v16.x or higher)
+- npm (v7.x or higher)
+- MongoDB (v4.x or higher)
+- Stripe account for accessing the Stripe API
 
 ### Quickstart
 
-Follow these steps to set up and run the project locally:
+1. **Clone the repository:**
+   ```sh
+   git clone https://github.com/your-username/saas-work.git
+   cd saas-work
+   ```
 
-1. **Clone the Repository**:
-    ```sh
-    git clone <repository-url>
-    cd saas-work
-    ```
+2. **Setup environment variables:**
+   Create a `.env` file in the root directory and add the necessary configurations:
+   ```plaintext
+   PORT=3000
+   MONGO_URI='your_mongo_connection_string'
+   JWT_SECRET='your_jwt_secret'
+   JWT_REFRESH_SECRET='your_refresh_jwt_secret'
+   STRIPE_SECRET_KEY='your_stripe_secret_key'
+   STRIPE_WEBHOOK_SECRET='your_stripe_webhook_secret'
+   ```
 
-2. **Setup Environment Variables**:
-   - Copy `.env.example` to `.env` in the `server/` directory and configure the necessary environment variables like `DATABASE_URL` and `STRIPE_SECRET_KEY`.
+3. **Install dependencies:**
+   ```sh
+   npm install
+   cd client && npm install
+   cd ..
+   cd server && npm install
+   cd ..
+   ```
 
-3. **Install Dependencies**:
-    ```sh
-    # In the root directory
-    npm install
+4. **Run the development environment:**
+   ```sh
+   npm run start
+   ```
 
-    # Navigate to client and install packages
-    cd client
-    npm install
-
-    # Navigate to server and install packages
-    cd ../server
-    npm install
-    ```
-
-4. **Start Development Servers**:
-    In the root directory, run concurrently:
-    ```sh
-    npm run start
-    ```
-
-5. **Seed the Database** (optional for initial setup to have sample data):
-    ```sh
-    cd server
-    npm run seed
-    ```
-
-6. **Open Your Browser**:
-    Access the application at `http://localhost:5173/`.
+   The frontend will be served at `http://localhost:5173` and the backend at `http://localhost:3000`.
 
 ### License
 
-The project is proprietary (not open source).
-
-```plaintext
-Copyright (c) 2024.
+The project is proprietary (not open source), Copyright (c) 2024.
 ```

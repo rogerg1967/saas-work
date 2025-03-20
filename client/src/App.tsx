@@ -11,7 +11,6 @@ import { Chat } from "./pages/Chat"
 import { Organizations } from "./pages/OrganizationsNew"
 import { Team } from "./pages/Team"
 import { Settings } from "./pages/Settings"
-import { Subscription } from "./pages/Subscription"
 import { Admin } from "./pages/Admin"
 import { UserProfile } from "./pages/UserProfile"
 import { Layout } from "./components/Layout"
@@ -44,7 +43,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/subscription" element={<Subscription />} />
+            {/* Subscription route removed as it's no longer needed */}
             <Route
               path="/dashboard"
               element={
