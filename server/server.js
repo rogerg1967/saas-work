@@ -33,8 +33,8 @@ app.enable('strict routing');
 
 app.use(cors({}));
 
-// Raw body parser for Stripe webhooks
-app.use('/api/stripe/webhook', express.raw({type: 'application/json'}));
+// Register webhook routes BEFORE bodyParser middleware
+app.use('/api/stripe/webhook', stripeWebhooks);
 
 // Regular parsers for other routes
 app.use(express.json());

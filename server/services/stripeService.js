@@ -31,6 +31,7 @@ class StripeService {
 
       // Update user's registration status to payment_pending
       user.registrationStatus = 'payment_pending';
+      user.subscriptionStatus = 'pending';
       await user.save();
 
       // Create a checkout session with the selected plan
@@ -48,6 +49,8 @@ class StripeService {
         cancel_url: cancelUrl,
         metadata: {
           userId: userId.toString(), // Convert ObjectId to string
+          userEmail: user.email,
+          userName: user.name || ''
         },
       });
 
