@@ -102,3 +102,17 @@ export const updateUser = async (id: string, data: {
     throw new Error(error?.response?.data?.error || error.message);
   }
 };
+
+// Description: Update user's subscription status
+// Endpoint: PUT /api/admin/users/:id/subscription
+// Request: { status: string }
+// Response: { success: boolean, data: { subscriptionStatus: string, subscriptionId: string, subscription: Object } }
+export const updateUserSubscriptionStatus = async (userId: string, status: string) => {
+  try {
+    const response = await api.put(`/api/admin/users/${userId}/subscription`, { status });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating user subscription status:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
+};

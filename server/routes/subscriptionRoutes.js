@@ -1,6 +1,7 @@
 const express = require('express');
 const { requireUser } = require('./middleware/auth');
 const StripeService = require('../services/stripeService');
+const SubscriptionService = require('../services/subscriptionService');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
@@ -12,9 +13,7 @@ router.get('/plans', async (req, res) => {
     const plans = await StripeService.getSubscriptionPlans();
     return res.status(200).json({
       success: true,
-      data: {
-        plans
-      }
+      plans
     });
   } catch (error) {
     console.error(`Error getting subscription plans: ${error.message}`);
@@ -141,11 +140,69 @@ router.get('/status', requireUser, async (req, res) => {
       success: true,
       data: {
         subscriptionStatus: user.subscriptionStatus,
-        paymentVerified: user.paymentVerified
+        paymentVerified: user.paymentVerified,
+        subscription: user.subscription || {},
+        subscriptionId: user.subscriptionId
       }
     });
   } catch (error) {
     console.error(`Error getting subscription status: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Get user's subscription details
+router.get('/details', requireUser, async (req, res) => {
+  try {
+    const subscription = await SubscriptionService.getUserSubscription(req.user._id);
+
+    return res.status(200).json({
+      success: true,
+      data: subscription
+    });
+  } catch (error) {
+    console.error(`Error getting subscription details: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Get user's invoices
+router.get('/invoices', requireUser, async (req, res) => {
+  try {
+    const invoices = await SubscriptionService.getUserInvoices(req.user._id);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        invoices
+      }
+    });
+  } catch (error) {
+    console.error(`Error getting user invoices: ${error.message}`);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Cancel user's subscription
+router.post('/cancel', requireUser, async (req, res) => {
+  try {
+    const result = await SubscriptionService.suspendSubscription(req.user._id);
+
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error(`Error cancelling subscription: ${error.message}`);
     return res.status(500).json({
       success: false,
       error: error.message

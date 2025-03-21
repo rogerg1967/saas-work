@@ -4,6 +4,7 @@ const Organization = require('../models/Organization');
 const User = require('../models/User');
 const OrganizationService = require('../services/organizationService');
 const UserService = require('../services/userService');
+const SubscriptionService = require('../services/subscriptionService');
 
 const router = express.Router();
 
@@ -429,6 +430,46 @@ router.put('/users/:id', requireUser, async (req, res) => {
     });
   } catch (error) {
     console.error(`Error updating user details: ${error.message}`, error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Update user's subscription status (admin only)
+router.put('/users/:id/subscription', requireUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    console.log('Admin subscription status update request received', {
+      adminUserId: req.user._id,
+      targetUserId: id,
+      newStatus: status
+    });
+
+    // Validate user is admin
+    if (req.user.role !== USER_ROLES.ADMIN) {
+      console.log('Access denied - non-admin user attempted to update subscription status', {
+        userId: req.user._id,
+        userRole: req.user.role,
+        targetUserId: id
+      });
+      return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
+    }
+
+    // Update the subscription status
+    const subscription = await SubscriptionService.updateSubscriptionStatus(id, status);
+
+    console.log('Successfully updated subscription status', {
+      userId: id,
+      newStatus: status
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: subscription
+    });
+  } catch (error) {
+    console.error(`Error updating subscription status: ${error.message}`, error);
     return res.status(500).json({ error: error.message });
   }
 });

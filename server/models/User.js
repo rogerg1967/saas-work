@@ -45,7 +45,7 @@ const schema = new mongoose.Schema({
   },
   subscriptionStatus: {
     type: String,
-    enum: ['none', 'pending', 'active', 'cancelled', 'expired'],
+    enum: ['none', 'pending', 'active', 'cancelled', 'paused', 'past_due', 'unpaid', 'trialing', 'expired'],
     default: 'none',
   },
   registrationStatus: {
@@ -61,6 +61,44 @@ const schema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  subscription: {
+    planId: {
+      type: String,
+      default: null,
+    },
+    planName: {
+      type: String,
+      default: null,
+    },
+    startDate: {
+      type: Date,
+      default: null,
+    },
+    currentPeriodEnd: {
+      type: Date,
+      default: null,
+    },
+    cancelAtPeriodEnd: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  paymentMethod: {
+    type: String,
+    default: null,
+  },
+  customerId: {
+    type: String,
+    default: null,
+  },
+  invoices: [{
+    invoiceId: String,
+    amount: Number,
+    currency: String,
+    status: String,
+    date: Date,
+    pdfUrl: String,
+  }],
   refreshToken: {
     type: String,
     unique: true,
