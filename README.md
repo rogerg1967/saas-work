@@ -1,77 +1,56 @@
+```markdown
 # SaaS Work
 
-A SaaS platform built to provide UK GDPR-compliant AI chatbots to organizations, utilizing Vue.js and Tailwind CSS for the frontend, with a robust backend powered by Express and MongoDB. This platform ensures detailed offerings and pricing, managed by role-based access controls, ensuring seamless user subscription management via Stripe.
+SaaS Work is a comprehensive SaaS platform developed to provide UK GDPR-compliant AI chatbots to organizations. Utilizing Vue.js and Tailwind CSS for the front end, the platform employs a role-based access system and integrates Stripe for subscription management. The back end, built on Express and MongoDB, handles authentication, real-time updates, and API integrations with AI providers like OpenAI to fetch and display the latest AI models.
 
 ## Overview
 
-"SaaS Work" is a sophisticated application designed with a focus on aligning with regulatory standards and providing a professional, user-friendly experience. The architecture consists of a frontend powered by React and Vite, and a backend built using Express.js, connected to a MongoDB database. The project leverages modern development practices including component-based UI managed with Shadcn UI, and strict role-based access control.
+SaaS Work is structured into two main parts: the front end and the back end.
 
-### Project Structure
+**Frontend:**
+- Built using Vue.js and Tailwind CSS.
+- The client-side code resides in the `client/` folder.
+- The `client/` folder is structured with components organized into `src/pages/` and `src/components/`.
+- Client-side routing is managed by `react-router-dom`.
+- Integrated with shadcn-ui component library.
+- Runs on port 5173 for development.
 
-The project is divided into two main parts:
-
-1. **Frontend (`client/`)**:
-   - **ReactJS**: Built using React, served by Vite.
-   - **Styling**: Integrated with Tailwind CSS and Shadcn-ui component library.
-   - **API Requests**: Handled in `client/src/api/`.
-   - **Routing**: Managed by `react-router-dom`.
-   - **Dev Server**: Runs on port 5173.
-
-2. **Backend (`server/`)**:
-   - **Express**: Implements REST API endpoints.
-   - **Database**: Connected to MongoDB using Mongoose.
-   - **Authentication**: JWT-based token authentication (access and refresh tokens).
-   - **Dev Server**: Runs on port 3000.
-
-Concurrently is used to run both client and server together with a single command (`npm run start`).
+**Backend:**
+- Based on Express.js, implementing REST API endpoints located in `server/`.
+- User authentication is done via email and password, using JWT tokens.
+- Connects to a MongoDB database using Mongoose.
+- Contains separate routes for various functionalities such as authentication, subscription management, and chatbot operations.
+- Runs on port 3000.
 
 ## Features
 
-- **Role-Based Access Control**:
-  - **SaaS Admin**: Manage organizations and users.
-  - **Organization Manager**: Manage chatbots within their organization.
-  - **Team Member**: Limited user access, typically chats and views data.
-  
-- **Comprehensive Hero Page**:
-  - Highlights platform features.
-  - Directs users to an informative pricing section leading to registration and subscription.
+- **GDPR-Compliant AI Chatbots**: Provides AI chatbot solutions compliant with UK GDPR guidelines.
+- **Role-Based Access Control**: Admins manage organizations and approve user registrations.
+- **Stripe Integration**: Manages subscriptions, payments, and invoices through Stripe.
+- **Dynamic AI Model Display**: Fetches and displays AI models based on the selected AI provider.
+- **Real-Time Data**: Tracks and displays active users in real time.
+- **User and Admin Functionality**: Allows users to manage their subscriptions and admins to oversee user activities and subscriptions.
+- **Profile Management**: Users can update their profiles and reset passwords.
+- **Organization Management**: Admins can manage organizations, including editing and deleting them.
 
-- **User and Subscription Management**:
-  - Users request to join existing organizations.
-  - Subscription management via Stripe, with roles exempting certain users from payment (e.g., admins).
-  - Seamless redirects post-payment, directly integrating Stripe status updates.
-
-- **AI Chatbot Features**:
-  - Dynamic AI model fetch based on selected AI provider.
-  - Chatbot creation, updating, and deletion from the UI.
-  
-- **Real-Time Data Management**:
-  - Active users' data displayed in real-time on the dashboard.
-
-- **User Experience Enhancements**:
-  - Editable profile details, password resets.
-  - Side navigation with user profile access and logout options.
-
-## Getting Started
+## Getting started
 
 ### Requirements
 
-To run the "SaaS Work" project, ensure the following software is installed on your machine:
-
-- **Node.js** (>= 14.x)
-- **npm** (>= 6.x)
-- **MongoDB** (Local or Cloud instance)
+- Node.js (version 14 or higher)
+- MongoDB
+- NPM (version 6 or higher)
 
 ### Quickstart
 
-1. **Clone the repository**:
-   ```sh
-   git clone <repository-url>
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/yourusername/saas-work.git
+   cd saas-work
    ```
 
-2. **Install dependencies**:
-   ```sh
-   cd SaaS-Work
+2. **Install dependencies:**
+   ```bash
    npm install
    cd client
    npm install
@@ -79,18 +58,26 @@ To run the "SaaS Work" project, ensure the following software is installed on yo
    npm install
    ```
 
-3. **Set up environment variables**:
-   Create a `.env` file in both `client/` and `server/` directories with the necessary configuration (refer to `.env.example` for guidance).
+3. **Set up environment variables:**
 
-4. **Run the application**:
-   ```sh
-   npm start
+   Create a `.env` file in `server/` with the following content:
+   ```plaintext
+   PORT=3000
+   DATABASE_URL=mongodb://localhost:27017/saaswork
+   JWT_SECRET=your_jwt_secret
+   JWT_REFRESH_SECRET=your_jwt_refresh_secret
+   STRIPE_SECRET_KEY=your_stripe_secret_key
    ```
 
-5. **Access the application**:
-   - **Frontend**: `http://localhost:5173`
-   - **Backend**: `http://localhost:3000`
+4. **Run the application:**
+   ```bash
+   npm run start
+   ```
+
+   The client will be accessible at `http://localhost:5173` and the server at `http://localhost:3000`.
 
 ### License
 
-The project is proprietary (not open source), Copyright (c) 2024.
+The project is proprietary.  
+Copyright (c) 2024.
+```

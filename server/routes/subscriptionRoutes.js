@@ -124,29 +124,23 @@ router.get('/verify', async (req, res) => {
   }
 });
 
-// Get current user's subscription status
+/**
+ * @route GET /api/subscription/status
+ * @desc Get user's subscription status
+ * @access Private
+ */
 router.get('/status', requireUser, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const userId = req.user._id;
+    console.log(`Fetching subscription status for user: ${userId}`);
+    const subscriptionStatus = await SubscriptionService.getSubscriptionStatus(userId);
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
-
-    return res.status(200).json({
+    return res.json({
       success: true,
-      data: {
-        subscriptionStatus: user.subscriptionStatus,
-        paymentVerified: user.paymentVerified,
-        subscription: user.subscription || {},
-        subscriptionId: user.subscriptionId
-      }
+      data: subscriptionStatus
     });
   } catch (error) {
-    console.error(`Error getting subscription status: ${error.message}`);
+    console.error('Error getting subscription status:', error);
     return res.status(500).json({
       success: false,
       error: error.message
@@ -154,17 +148,23 @@ router.get('/status', requireUser, async (req, res) => {
   }
 });
 
-// Get user's subscription details
+/**
+ * @route GET /api/subscription/details
+ * @desc Get detailed subscription information
+ * @access Private
+ */
 router.get('/details', requireUser, async (req, res) => {
   try {
-    const subscription = await SubscriptionService.getUserSubscription(req.user._id);
+    const userId = req.user._id;
+    console.log(`Fetching detailed subscription information for user: ${userId}`);
+    const subscriptionDetails = await SubscriptionService.getSubscriptionDetails(userId);
 
-    return res.status(200).json({
+    return res.json({
       success: true,
-      data: subscription
+      data: subscriptionDetails
     });
   } catch (error) {
-    console.error(`Error getting subscription details: ${error.message}`);
+    console.error('Error getting subscription details:', error);
     return res.status(500).json({
       success: false,
       error: error.message

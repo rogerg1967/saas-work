@@ -14,6 +14,7 @@ import { Settings } from "./pages/Settings"
 import { Admin } from "./pages/Admin"
 import { UserProfile } from "./pages/UserProfile"
 import { StripeSuccess } from "./pages/StripeSuccess"
+import { SubscriptionManagement } from "./pages/SubscriptionManagement"
 import { Layout } from "./components/Layout"
 import { ProtectedRoute } from "./components/ProtectedRoute"
 import { useEffect } from "react"
@@ -120,6 +121,16 @@ function App() {
               element={
                 <ProtectedRoute>
                   <UserProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/subscription-management"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <SubscriptionManagement />
+                  </Layout>
                 </ProtectedRoute>
               }
             />

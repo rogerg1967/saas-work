@@ -10,6 +10,7 @@ import {
   Shield,
   LogOut,
   User,
+  CreditCard,
 } from "lucide-react";
 import { getCurrentUser, logout } from "@/api/auth";
 import { useToast } from "@/hooks/useToast";
@@ -32,6 +33,7 @@ const navigation = [
   { name: "Team", href: "/team", icon: Users },
   { name: "Settings", href: "/settings", icon: Settings },
   { name: "Admin", href: "/admin", icon: Shield },
+  { name: "Subscription", href: "/subscription-management", icon: CreditCard },
 ];
 
 export function Sidebar() {

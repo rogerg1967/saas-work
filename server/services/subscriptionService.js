@@ -28,6 +28,81 @@ class SubscriptionService {
   }
 
   /**
+   * Get user's subscription status
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>} Subscription status information
+   */
+  static async getSubscriptionStatus(userId) {
+    try {
+      // Find user and select only subscription-related fields
+      const user = await User.findById(userId).select(
+        'subscriptionStatus subscriptionId paymentVerified subscription customerId'
+      );
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      console.log(`Retrieved subscription status for user: ${userId}`);
+      
+      return {
+        subscriptionStatus: user.subscriptionStatus,
+        subscriptionId: user.subscriptionId,
+        paymentVerified: user.paymentVerified,
+        subscription: user.subscription || {},
+        customerId: user.customerId
+      };
+    } catch (error) {
+      console.error('Error getting subscription status:', error);
+      throw new Error(`Failed to get subscription status: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get detailed subscription information from Stripe
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>} Detailed subscription information
+   */
+  static async getSubscriptionDetails(userId) {
+    try {
+      // Get user data first
+      const user = await User.findById(userId).select(
+        'subscriptionStatus subscriptionId paymentVerified subscription customerId'
+      );
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      console.log(`Retrieving detailed subscription information for user: ${userId}`);
+
+      // Only fetch from Stripe if we have a subscription ID
+      let stripeSubscription = null;
+      if (user.subscriptionId && user.customerId) {
+        try {
+          console.log(`Fetching Stripe subscription data for subscription: ${user.subscriptionId}`);
+          stripeSubscription = await StripeService.getSubscription(user.subscriptionId);
+        } catch (stripeError) {
+          console.warn('Could not fetch Stripe subscription:', stripeError.message, stripeError.stack);
+          // Continue with local data if Stripe fetch fails
+        }
+      }
+
+      return {
+        subscriptionStatus: user.subscriptionStatus,
+        subscriptionId: user.subscriptionId,
+        paymentVerified: user.paymentVerified,
+        subscription: user.subscription || {},
+        customerId: user.customerId,
+        stripeSubscription: stripeSubscription // Include the raw Stripe data if available
+      };
+    } catch (error) {
+      console.error('Error getting subscription details:', error.stack);
+      throw new Error(`Failed to get subscription details: ${error.message}`);
+    }
+  }
+
+  /**
    * Suspend user's subscription
    * @param {string} userId - User ID
    * @returns {Promise<Object>} - Updated subscription details
