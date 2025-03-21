@@ -1,83 +1,110 @@
-```markdown
 # SaaS Work
 
-SaaS Work is a comprehensive SaaS platform developed to provide UK GDPR-compliant AI chatbots to organizations. Utilizing Vue.js and Tailwind CSS for the front end, the platform employs a role-based access system and integrates Stripe for subscription management. The back end, built on Express and MongoDB, handles authentication, real-time updates, and API integrations with AI providers like OpenAI to fetch and display the latest AI models.
+SaaS Work is a platform designed to provide UK GDPR-compliant AI chatbots to organizations, created using Vue.js and Tailwind CSS for frontend, and an Express-based backend. The platform features detailed onboarding processes, role-based access control, and comprehensive subscription management powered by Stripe.
 
 ## Overview
 
-SaaS Work is structured into two main parts: the front end and the back end.
+SaaS Work adopts a microservices-style architecture with a clear separation between frontend and backend services.
+
+### Architecture and Technologies
 
 **Frontend:**
-- Built using Vue.js and Tailwind CSS.
-- The client-side code resides in the `client/` folder.
-- The `client/` folder is structured with components organized into `src/pages/` and `src/components/`.
-- Client-side routing is managed by `react-router-dom`.
-- Integrated with shadcn-ui component library.
-- Runs on port 5173 for development.
+- **Framework:** Vue.js
+- **Styling:** Tailwind CSS
+- **Components:** Integrated shadcn-ui components
+- **Build Tool:** Vite
+- **Routing:** `react-router-dom`
 
 **Backend:**
-- Based on Express.js, implementing REST API endpoints located in `server/`.
-- User authentication is done via email and password, using JWT tokens.
-- Connects to a MongoDB database using Mongoose.
-- Contains separate routes for various functionalities such as authentication, subscription management, and chatbot operations.
-- Runs on port 3000.
+- **Server:** Express.js
+- **Database:** MongoDB with Mongoose
+- **Authentication:** JWT-based authentication (Bearer tokens)
+- **Subscription Management:** Stripe
+
+### Project Structure
+
+**Frontend:**
+
+    client/
+    ├── src/
+    │   ├── api/                   # API request definitions
+    │   ├── components/            # Reusable components
+    │   ├── hooks/                 # Custom hooks
+    │   ├── pages/                 # Page components
+    │   ├── App.tsx                # Main App component
+    │   └── main.tsx               # Entry point of the application
+    ├── public/                    # Static assets
+    ├── .env                       # Environment variables
+    └── vite.config.ts             # Vite configuration
+
+**Backend:**
+
+    server/
+    ├── models/                    # Mongoose models
+    ├── routes/                    # API route handlers
+    ├── services/                  # Service layers for business logic
+    ├── utils/                     # Utility functions
+    ├── scripts/                   # Database seeding scripts
+    ├── .env                       # Environment variables
+    └── server.js                  # Entry point for the server
 
 ## Features
 
-- **GDPR-Compliant AI Chatbots**: Provides AI chatbot solutions compliant with UK GDPR guidelines.
-- **Role-Based Access Control**: Admins manage organizations and approve user registrations.
-- **Stripe Integration**: Manages subscriptions, payments, and invoices through Stripe.
-- **Dynamic AI Model Display**: Fetches and displays AI models based on the selected AI provider.
-- **Real-Time Data**: Tracks and displays active users in real time.
-- **User and Admin Functionality**: Allows users to manage their subscriptions and admins to oversee user activities and subscriptions.
-- **Profile Management**: Users can update their profiles and reset passwords.
-- **Organization Management**: Admins can manage organizations, including editing and deleting them.
+- **GDPR-compliant AI Chatbots:** Provides UK GDPR-compliant AI chatbot solutions powered by OpenAI or other AI providers.
+- **Role-Based Access Control:** Supports roles including Admin, Organization Manager, and Team Member.
+- **Subscription Management:** Uses Stripe to handle subscription payments, status updates, and invoice management.
+- **Real-Time Data:** Updates dashboard with real-time data about active users.
+- **Organization Management:** Administrators manage organizations and users via a dedicated interface.
+- **Profile Management:** Users can edit their profile details and reset passwords.
+- **Dynamic Model Selection:** Integrates with AI providers to fetch and display the latest model options.
 
 ## Getting started
 
 ### Requirements
 
-- Node.js (version 14 or higher)
-- MongoDB
-- NPM (version 6 or higher)
+Make sure you have the following installed on your development environment:
+
+- **Node.js** (version 14 or newer)
+- **npm** (version 6 or newer)
+- **MongoDB** (version 4 or newer)
 
 ### Quickstart
 
 1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/yourusername/saas-work.git
+   ```sh
+   git clone <repository-url>
    cd saas-work
    ```
 
-2. **Install dependencies:**
-   ```bash
+2. **Setup environment variables:**
+   Create a `.env` file in both `client/` and `server/` directories and configure it as outlined in the respective `.env.example` files.
+
+3. **Install dependencies:**
+   ```sh
    npm install
-   cd client
-   npm install
-   cd ../server
-   npm install
+   cd client && npm install
+   cd ../server && npm install
+   cd ..
    ```
 
-3. **Set up environment variables:**
+4. **Run MongoDB:**
+   Ensure your MongoDB server is running locally or update the database connection string in the `.env` file.
 
-   Create a `.env` file in `server/` with the following content:
-   ```plaintext
-   PORT=3000
-   DATABASE_URL=mongodb://localhost:27017/saaswork
-   JWT_SECRET=your_jwt_secret
-   JWT_REFRESH_SECRET=your_jwt_refresh_secret
-   STRIPE_SECRET_KEY=your_stripe_secret_key
+5. **Seed the database:**
+   ```sh
+   cd server
+   node scripts/seed.js
+   cd ..
    ```
 
-4. **Run the application:**
-   ```bash
+6. **Start the application:**
+   ```sh
    npm run start
    ```
-
-   The client will be accessible at `http://localhost:5173` and the server at `http://localhost:3000`.
+   This command will concurrently run both the frontend and backend servers:
+   - Frontend server: http://localhost:5173
+   - Backend server: http://localhost:3000
 
 ### License
 
-The project is proprietary.  
-Copyright (c) 2024.
-```
+The project is proprietary (not open source). Copyright (c) 2024.
