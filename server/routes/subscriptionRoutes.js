@@ -2,6 +2,7 @@ const express = require('express');
 const { requireUser } = require('./middleware/auth');
 const StripeService = require('../services/stripeService');
 const User = require('../models/User');
+const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 
@@ -60,7 +61,7 @@ router.post('/create-checkout-session', requireUser, async (req, res) => {
 });
 
 // Verify subscription payment from session ID
-router.get('/verify', requireUser, async (req, res) => {
+router.get('/verify', async (req, res) => {
   try {
     const { session_id } = req.query;
 
@@ -72,6 +73,38 @@ router.get('/verify', requireUser, async (req, res) => {
     }
 
     const result = await StripeService.verifySubscriptionPayment(session_id);
+
+    if (result.success && result.user) {
+      // Generate authentication tokens for the user
+      const accessToken = jwt.sign(
+        { userId: result.user._id, email: result.user.email, role: result.user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+
+      const refreshToken = jwt.sign(
+        { userId: result.user._id },
+        process.env.JWT_REFRESH_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          verified: result.success,
+          user: {
+            id: result.user._id,
+            email: result.user.email,
+            name: result.user.name,
+            role: result.user.role,
+            subscriptionStatus: result.user.subscriptionStatus,
+            paymentVerified: result.user.paymentVerified
+          },
+          accessToken,
+          refreshToken
+        }
+      });
+    }
 
     return res.status(200).json({
       success: true,

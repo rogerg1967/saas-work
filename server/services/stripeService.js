@@ -76,7 +76,8 @@ class StripeService {
             sessionId.split('_').pop(),
             {
               subscriptionStatus: 'active',
-              paymentVerified: true
+              paymentVerified: true,
+              registrationStatus: 'complete'
             },
             { new: true }
           )
@@ -88,8 +89,8 @@ class StripeService {
       // Retrieve the checkout session from Stripe
       const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-      if (!session || session.payment_status !== 'paid') {
-        throw new Error('Payment not completed or session invalid');
+      if (!session) {
+        throw new Error('Invalid session ID');
       }
 
       const userId = session.metadata.userId;
@@ -100,13 +101,22 @@ class StripeService {
         throw new Error('User not found');
       }
 
-      user.subscriptionStatus = 'active';
+      // Map Stripe payment status to our subscription status
+      let subscriptionStatus = 'pending';
+      if (session.payment_status === 'paid') {
+        subscriptionStatus = 'active';
+      } else if (session.payment_status === 'unpaid') {
+        subscriptionStatus = 'expired';
+      }
+
+      user.subscriptionStatus = subscriptionStatus;
       user.subscriptionId = session.subscription;
-      user.paymentVerified = true;
+      user.paymentVerified = session.payment_status === 'paid';
+      user.registrationStatus = session.payment_status === 'paid' ? 'complete' : 'payment_pending';
       await user.save();
 
-      console.log(`Payment verified for user: ${userId}`);
-      return { success: true, user };
+      console.log(`Payment verification status for user ${userId}: ${subscriptionStatus}`);
+      return { success: user.paymentVerified, user };
     } catch (error) {
       console.error(`Error verifying subscription: ${error.message}`, error);
       throw new Error(`Failed to verify subscription: ${error.message}`);

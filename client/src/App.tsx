@@ -13,6 +13,7 @@ import { Team } from "./pages/Team"
 import { Settings } from "./pages/Settings"
 import { Admin } from "./pages/Admin"
 import { UserProfile } from "./pages/UserProfile"
+import { StripeSuccess } from "./pages/StripeSuccess"
 import { Layout } from "./components/Layout"
 import { ProtectedRoute } from "./components/ProtectedRoute"
 import { useEffect } from "react"
@@ -43,7 +44,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            {/* Subscription route removed as it's no longer needed */}
+            <Route path="/stripe-success" element={<StripeSuccess />} />
             <Route
               path="/dashboard"
               element={

@@ -8,12 +8,26 @@ export const createCheckoutSession = async (planId: string) => {
   try {
     const response = await api.post('/api/subscription/create-checkout-session', {
       planId,
-      successUrl: `${window.location.origin}/dashboard`,
+      successUrl: `${window.location.origin}/stripe-success`,
       cancelUrl: `${window.location.origin}/register`
     });
     return response.data;
   } catch (error) {
     console.error('Error creating checkout session:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
+};
+
+// Description: Verify a subscription payment
+// Endpoint: GET /api/subscription/verify?session_id={sessionId}
+// Request: {}
+// Response: { success: boolean, data: { verified: boolean, user: { subscriptionStatus: string, paymentVerified: boolean } } }
+export const verifySubscriptionPayment = async (sessionId: string) => {
+  try {
+    const response = await api.get(`/api/subscription/verify?session_id=${sessionId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error verifying payment:', error);
     throw new Error(error?.response?.data?.error || error.message);
   }
 };

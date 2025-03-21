@@ -1,104 +1,95 @@
 # SaaS Work
 
-SaaS Work is an advanced SaaS platform designed to offer UK GDPR-compliant AI chatbots to organizations, built with Vue.js and Tailwind CSS. The application features a robust role-based system, integrated with Stripe for subscription management, and dynamically populated AI models from providers like OpenAI.
+A SaaS platform built to provide UK GDPR-compliant AI chatbots to organizations, utilizing Vue.js and Tailwind CSS for the frontend, with a robust backend powered by Express and MongoDB. This platform ensures detailed offerings and pricing, managed by role-based access controls, ensuring seamless user subscription management via Stripe.
 
 ## Overview
 
-The SaaS Work platform is architected into a client-server model, leveraging modern JavaScript frameworks and libraries:
-
-### Architecture and Technologies
-- **Frontend**: Built using React.js with Vite, Tailwind CSS, and shadcn-ui.
-- **Backend**: Powered by an Express.js server with MongoDB for data storage, and Mongoose for ORM.
-- **User Authentication**: Managed via a token-based system (JWT).
-- **Payments**: Integrated with Stripe for seamless subscription management.
-- **API**: RESTful API endpoints for data operations.
-- **AI Integration**: Fetch and manage AI models dynamically from providers like OpenAI.
+"SaaS Work" is a sophisticated application designed with a focus on aligning with regulatory standards and providing a professional, user-friendly experience. The architecture consists of a frontend powered by React and Vite, and a backend built using Express.js, connected to a MongoDB database. The project leverages modern development practices including component-based UI managed with Shadcn UI, and strict role-based access control.
 
 ### Project Structure
 
-```
-saas-work/
-│
-├── client/
-│   ├── components/
-│   ├── pages/
-│   ├── api/
-│   ├── contexts/
-│   ├── hooks/
-│   ├── styles/
-│   ├── vite.config.ts
-│   ├── package.json
-│   └── ...
-│
-├── server/
-│   ├── routes/
-│   ├── models/
-│   ├── services/
-│   ├── utils/
-│   ├── package.json
-│   └── ...
-│
-├── .env
-├── .gitignore
-└── README.md
-```
+The project is divided into two main parts:
+
+1. **Frontend (`client/`)**:
+   - **ReactJS**: Built using React, served by Vite.
+   - **Styling**: Integrated with Tailwind CSS and Shadcn-ui component library.
+   - **API Requests**: Handled in `client/src/api/`.
+   - **Routing**: Managed by `react-router-dom`.
+   - **Dev Server**: Runs on port 5173.
+
+2. **Backend (`server/`)**:
+   - **Express**: Implements REST API endpoints.
+   - **Database**: Connected to MongoDB using Mongoose.
+   - **Authentication**: JWT-based token authentication (access and refresh tokens).
+   - **Dev Server**: Runs on port 3000.
+
+Concurrently is used to run both client and server together with a single command (`npm run start`).
 
 ## Features
 
-- **Role-based Access Control**: Allows different permissions for SaaS Admins, Organization Managers, and Team Members.
-- **Dynamic AI Model Selection**: Fetches and lists the latest AI models from providers like OpenAI.
-- **Stripe Integration**: Manages user subscriptions and payments.
-- **GDPR Compliance**: Ensures data handling and processing meet UK GDPR standards.
-- **User Management**: Allows editing user details and role assignments from the admin dashboard.
-- **Real-time Updates**: Provides real-time data on active users and other critical stats.
-- **Comprehensive Dashboard**: Includes stats, AI chatbot management, organization details, and user profiles.
-- **Password Management**: Supports password reset and change functionalities.
-- **Detailed Hero Page**: Offers a professional presentation of platform features and direct access to the pricing section.
+- **Role-Based Access Control**:
+  - **SaaS Admin**: Manage organizations and users.
+  - **Organization Manager**: Manage chatbots within their organization.
+  - **Team Member**: Limited user access, typically chats and views data.
+  
+- **Comprehensive Hero Page**:
+  - Highlights platform features.
+  - Directs users to an informative pricing section leading to registration and subscription.
 
-## Getting started
+- **User and Subscription Management**:
+  - Users request to join existing organizations.
+  - Subscription management via Stripe, with roles exempting certain users from payment (e.g., admins).
+  - Seamless redirects post-payment, directly integrating Stripe status updates.
+
+- **AI Chatbot Features**:
+  - Dynamic AI model fetch based on selected AI provider.
+  - Chatbot creation, updating, and deletion from the UI.
+  
+- **Real-Time Data Management**:
+  - Active users' data displayed in real-time on the dashboard.
+
+- **User Experience Enhancements**:
+  - Editable profile details, password resets.
+  - Side navigation with user profile access and logout options.
+
+## Getting Started
 
 ### Requirements
 
-Ensure you have the following installed on your system:
+To run the "SaaS Work" project, ensure the following software is installed on your machine:
 
-- Node.js (v14 or above)
-- npm (v6 or above)
-- MongoDB
+- **Node.js** (>= 14.x)
+- **npm** (>= 6.x)
+- **MongoDB** (Local or Cloud instance)
 
 ### Quickstart
 
-1. **Clone the repository**
-
-   ```bash
+1. **Clone the repository**:
+   ```sh
    git clone <repository-url>
-   cd saas-work
    ```
 
-2. **Install dependencies**
-
-   ```bash
+2. **Install dependencies**:
+   ```sh
+   cd SaaS-Work
    npm install
-   cd client && npm install
-   cd ../server && npm install
+   cd client
+   npm install
+   cd ../server
+   npm install
    ```
 
-3. **Setup environment variables**
+3. **Set up environment variables**:
+   Create a `.env` file in both `client/` and `server/` directories with the necessary configuration (refer to `.env.example` for guidance).
 
-   Create a `.env` file in both the root and `server` directories, and set the necessary environment variables. 
-
-4. **Run the application**
-
-   In the root directory, run:
-
-   ```bash
-   npm run start
+4. **Run the application**:
+   ```sh
+   npm start
    ```
 
-   This command will start both the client and server concurrently.
-
-5. **Access the application**
-
-   Open your browser and navigate to `http://localhost:5173` to access the frontend.
+5. **Access the application**:
+   - **Frontend**: `http://localhost:5173`
+   - **Backend**: `http://localhost:3000`
 
 ### License
 
