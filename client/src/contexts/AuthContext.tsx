@@ -1,6 +1,8 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { login as loginApi, register as apiRegister } from "@/api/auth";
 import { useToast } from "@/hooks/useToast";
+import * as jwtDecode from "jwt-decode";
+import api from "@/api/api";
 
 type User = {
   id: string;
@@ -15,6 +17,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<boolean>;
   register: (data: { email: string; password: string; name?: string }) => Promise<any>;
   logout: () => void;
+  refreshTokens: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -26,6 +29,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  // Function to check token expiration and refresh if needed
+  const refreshTokens = async () => {
+    const accessToken = localStorage.getItem("accessToken");
+    console.log('AuthContext refreshTokens called, token available:', !!accessToken);
+    if (!accessToken) return;
+
+    try {
+      // Decode token to check expiration
+      const decoded: any = jwtDecode(accessToken);
+      const currentTime = Date.now() / 1000;
+
+      console.log('Token expiration details:', {
+        exp: decoded.exp,
+        currentTime,
+        timeRemaining: decoded.exp - currentTime
+      });
+
+      // If token expires in less than 2 minutes, refresh it
+      if (decoded.exp - currentTime < 120) {
+        const refreshToken = localStorage.getItem("refreshToken");
+        console.log('Token needs refresh, refresh token available:', !!refreshToken);
+        
+        if (!refreshToken) {
+          logout();
+          return;
+        }
+
+        const response = await api.post("/api/auth/refresh", { refreshToken });
+
+        console.log('Token refresh completed:', {
+          success: response.data.success,
+          hasNewAccessToken: !!response.data.data?.accessToken
+        });
+
+        if (response.data.success) {
+          localStorage.setItem("accessToken", response.data.data.accessToken);
+          localStorage.setItem("refreshToken", response.data.data.refreshToken);
+        } else {
+          logout();
+        }
+      }
+    } catch (error) {
+      console.error("Token refresh error:", error);
+      logout();
+    }
+  };
+
+  // Set up token refresh timer
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Check token every minute
+      const tokenCheckInterval = setInterval(() => {
+        refreshTokens();
+      }, 60000);
+
+      // Initial check
+      refreshTokens();
+
+      return () => {
+        clearInterval(tokenCheckInterval);
+      };
+    }
+  }, [isAuthenticated]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -135,7 +202,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, isLoading, login, register, logout, refreshTokens }}>
       {children}
     </AuthContext.Provider>
   );

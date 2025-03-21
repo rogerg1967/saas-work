@@ -82,12 +82,33 @@ export function Register() {
 
     const fetchSubscriptionPlans = async () => {
       try {
+        console.log('Fetching subscription plans...');
         setPlansLoading(true)
-        const data = await getSubscriptionPlans()
-        setSubscriptionPlans(data.plans)
-        // Set default selection to the first plan if available
-        if (data.plans && data.plans.length > 0) {
-          setValue("subscriptionPlanId", data.plans[0].id)
+        const response = await getSubscriptionPlans()
+        console.log('Raw subscription plans response:', response);
+
+        // Log the structure of the response to understand what we're working with
+        console.log('Response structure:', {
+          hasData: !!response.data,
+          hasPlans: !!response.plans,
+          responseKeys: Object.keys(response)
+        });
+
+        if (response.plans) {
+          setSubscriptionPlans(response.plans);
+          // Set default selection to the first plan if available
+          if (response.plans.length > 0) {
+            setValue("subscriptionPlanId", response.plans[0].id);
+          }
+        } else if (response.data && response.data.plans) {
+          setSubscriptionPlans(response.data.plans);
+          // Set default selection to the first plan if available
+          if (response.data.plans.length > 0) {
+            setValue("subscriptionPlanId", response.data.plans[0].id);
+          }
+        } else {
+          console.error('Unexpected response structure:', response);
+          throw new Error('Invalid response structure');
         }
       } catch (error) {
         console.error("Failed to fetch subscription plans:", error)

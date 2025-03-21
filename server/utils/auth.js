@@ -11,7 +11,7 @@ const generateAccessToken = (user) => {
         organizationId: user.organizationId || null
       },
       process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: '15m' }
+      { expiresIn: '30m' } // Increased from 15m to 30m
     );
     return token;
   } catch (error) {

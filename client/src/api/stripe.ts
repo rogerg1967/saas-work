@@ -38,8 +38,10 @@ export const verifySubscriptionPayment = async (sessionId: string) => {
 // Response: { success: boolean, data: { plans: Array<{ id: string, name: string, price: number, features: string[] }> } }
 export const getSubscriptionPlans = async () => {
   try {
+    console.log('getSubscriptionPlans function called');
     const response = await api.get('/api/subscription/plans');
-    return response.data.data;
+    console.log('Subscription plans API response:', response.data);
+    return response.data;
   } catch (error) {
     console.error('Error fetching subscription plans:', error);
     throw new Error(error?.response?.data?.error || error.message);

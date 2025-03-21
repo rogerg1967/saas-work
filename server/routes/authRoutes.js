@@ -311,6 +311,9 @@ router.post('/logout', async (req, res) => {
 });
 
 router.post('/refresh', async (req, res) => {
+  // Add this at the beginning of the refresh token endpoint
+  console.log('Refresh token request received:', req.body);
+
   const { refreshToken } = req.body;
 
   if (!refreshToken) {
@@ -323,6 +326,9 @@ router.post('/refresh', async (req, res) => {
   try {
     // Verify the refresh token
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+    // Add this after token verification
+    console.log('Refresh token verified, user ID:', decoded.userId || decoded.sub);
 
     // Find the user
     const user = await UserService.get(decoded.sub);
@@ -348,6 +354,12 @@ router.post('/refresh', async (req, res) => {
     // Update user's refresh token in database
     user.refreshToken = newRefreshToken;
     await user.save();
+
+    // Add this before sending the response
+    console.log('Sending new tokens to client:', {
+      accessTokenExpiry: Math.floor(Date.now() / 1000) + 60 * 30, // 30 minutes from now
+      refreshTokenProvided: !!req.body.refreshToken
+    });
 
     // Return new tokens
     return res.status(200).json({
