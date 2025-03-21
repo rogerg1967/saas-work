@@ -434,6 +434,51 @@ router.put('/users/:id', requireUser, async (req, res) => {
   }
 });
 
+// Get user's subscription details (admin only)
+router.get('/users/:id/subscription', requireUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log('Admin subscription details request received', {
+      adminUserId: req.user._id,
+      targetUserId: id
+    });
+
+    // Validate user is admin
+    if (req.user.role !== USER_ROLES.ADMIN) {
+      console.log('Access denied - non-admin user attempted to view subscription details', {
+        userId: req.user._id,
+        userRole: req.user.role,
+        targetUserId: id
+      });
+      return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
+    }
+
+    // Find the user
+    const user = await User.findById(id);
+    if (!user) {
+      console.log('User not found for subscription details', { userId: id });
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Return subscription details
+    return res.status(200).json({
+      success: true,
+      data: {
+        subscriptionStatus: user.subscriptionStatus,
+        subscriptionId: user.subscriptionId,
+        subscription: user.subscription,
+        paymentVerified: user.paymentVerified,
+        customerId: user.customerId,
+        invoices: user.invoices || []
+      }
+    });
+  } catch (error) {
+    console.error(`Error fetching subscription details: ${error.message}`, error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // Update user's subscription status (admin only)
 router.put('/users/:id/subscription', requireUser, async (req, res) => {
   try {

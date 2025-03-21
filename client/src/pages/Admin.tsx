@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { UserSubscriptionDialog } from "@/components/admin/UserSubscriptionDialog";
 
 export function Admin() {
   const [organizations, setOrganizations] = useState([]);
@@ -50,6 +51,8 @@ export function Admin() {
     role: "",
     organizationId: ""
   });
+  const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -149,6 +152,11 @@ export function Admin() {
       organizationId: user.organization?._id || "none"
     });
     setEditUserDialogOpen(true);
+  };
+
+  const handleManageSubscription = (user) => {
+    setSelectedUser(user);
+    setSubscriptionDialogOpen(true);
   };
 
   const handleEditUserFormChange = (e) => {
@@ -299,6 +307,9 @@ export function Admin() {
                     <DropdownMenuItem onClick={() => handleEditUser(user)}>
                       Edit User
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleManageSubscription(user)}>
+                      Manage Subscription
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleDeleteUser(user._id)}>
                       Delete User
                     </DropdownMenuItem>
@@ -411,6 +422,16 @@ export function Admin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {selectedUser && (
+        <UserSubscriptionDialog
+          userId={selectedUser._id}
+          userName={selectedUser.name}
+          open={subscriptionDialogOpen}
+          onOpenChange={setSubscriptionDialogOpen}
+          onUpdate={fetchData}
+        />
+      )}
     </div>
   );
 }

@@ -116,3 +116,17 @@ export const updateUserSubscriptionStatus = async (userId: string, status: strin
     throw new Error(error?.response?.data?.error || error.message);
   }
 };
+
+// Description: Get user's subscription details
+// Endpoint: GET /api/admin/users/:id/subscription
+// Request: {}
+// Response: { success: boolean, data: { subscriptionStatus: string, subscriptionId: string, subscription: Object, paymentVerified: boolean, customerId: string, invoices: Array } }
+export const getUserSubscriptionDetails = async (userId: string) => {
+  try {
+    const response = await api.get(`/api/admin/users/${userId}/subscription`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching user subscription details:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
+};

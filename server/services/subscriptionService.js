@@ -44,7 +44,7 @@ class SubscriptionService {
       }
 
       console.log(`Retrieved subscription status for user: ${userId}`);
-      
+
       return {
         subscriptionStatus: user.subscriptionStatus,
         subscriptionId: user.subscriptionId,
@@ -181,18 +181,21 @@ class SubscriptionService {
    */
   static async updateSubscriptionStatus(userId, status) {
     try {
+      console.log(`Updating subscription status for user ${userId} to ${status}`);
+
+      // Validate the status
+      const validStatuses = ['none', 'pending', 'active', 'cancelled', 'paused', 'past_due', 'unpaid', 'trialing', 'expired'];
+      if (!validStatuses.includes(status)) {
+        throw new Error(`Invalid subscription status: ${status}`);
+      }
+
+      // Find the user
       const user = await User.findById(userId);
       if (!user) {
         throw new Error('User not found');
       }
 
-      // Validate status
-      const validStatuses = ['active', 'cancelled', 'paused', 'past_due', 'unpaid', 'trialing', 'expired'];
-      if (!validStatuses.includes(status)) {
-        throw new Error(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
-      }
-
-      // Update user's subscription status
+      // Update the subscription status
       user.subscriptionStatus = status;
       await user.save();
 
