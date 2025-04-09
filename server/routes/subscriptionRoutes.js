@@ -10,13 +10,17 @@ const router = express.Router();
 // Get available subscription plans
 router.get('/plans', async (req, res) => {
   try {
+    console.log('Fetching subscription plans');
     const plans = await StripeService.getSubscriptionPlans();
+    console.log(`Successfully retrieved ${plans.length} subscription plans`);
     return res.status(200).json({
       success: true,
-      plans
+      data: {
+        plans
+      }
     });
   } catch (error) {
-    console.error(`Error getting subscription plans: ${error.message}`);
+    console.error(`Error getting subscription plans: ${error.message}`, error);
     return res.status(500).json({
       success: false,
       error: error.message

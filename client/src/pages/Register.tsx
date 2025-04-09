@@ -87,35 +87,21 @@ export function Register() {
         const response = await getSubscriptionPlans()
         console.log('Raw subscription plans response:', response);
 
-        // Log the structure of the response to understand what we're working with
-        console.log('Response structure:', {
-          hasData: !!response.data,
-          hasPlans: !!response.plans,
-          responseKeys: Object.keys(response)
-        });
-
-        if (response.plans) {
-          setSubscriptionPlans(response.plans);
-          // Set default selection to the first plan if available
-          if (response.plans.length > 0) {
-            setValue("subscriptionPlanId", response.plans[0].id);
-          }
-        } else if (response.data && response.data.plans) {
+        if (response.data && response.data.plans) {
           setSubscriptionPlans(response.data.plans);
           // Set default selection to the first plan if available
           if (response.data.plans.length > 0) {
             setValue("subscriptionPlanId", response.data.plans[0].id);
           }
         } else {
-          console.error('Unexpected response structure:', response);
-          throw new Error('Invalid response structure');
+          throw new Error('Invalid subscription plans data');
         }
       } catch (error) {
         console.error("Failed to fetch subscription plans:", error)
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to load subscription plans. Please try again.",
+          description: "Failed to fetch subscription plans: " + error.message
         })
       } finally {
         setPlansLoading(false)

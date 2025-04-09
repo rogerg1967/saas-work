@@ -13,9 +13,14 @@ export function Subscription() {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const data = await getSubscriptionPlans();
-        setPlans(data.plans);
+        const response = await getSubscriptionPlans();
+        if (response.data && response.data.plans) {
+          setPlans(response.data.plans);
+        } else {
+          throw new Error('Invalid subscription plans data');
+        }
       } catch (error) {
+        console.error('Failed to fetch subscription plans:', error);
         toast({
           variant: "destructive",
           title: "Error",
@@ -42,6 +47,7 @@ export function Subscription() {
         });
       }
     } catch (error) {
+      console.error('Failed to process subscription:', error);
       toast({
         variant: "destructive",
         title: "Error",

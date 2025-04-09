@@ -41,7 +41,21 @@ export const getSubscriptionPlans = async () => {
     console.log('getSubscriptionPlans function called');
     const response = await api.get('/api/subscription/plans');
     console.log('Subscription plans API response:', response.data);
-    return response.data;
+
+    // Handle different response structures
+    if (response.data.data && response.data.data.plans) {
+      return response.data;
+    } else if (response.data.plans) {
+      // For backward compatibility
+      return {
+        success: response.data.success,
+        data: {
+          plans: response.data.plans
+        }
+      };
+    } else {
+      throw new Error('Invalid response format from subscription plans API');
+    }
   } catch (error) {
     console.error('Error fetching subscription plans:', error);
     throw new Error(error?.response?.data?.error || error.message);
