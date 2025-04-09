@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       // Decode token to check expiration
-      const decoded: any = jwtDecode(accessToken);
+      const decoded: any = jwtDecode.jwtDecode(accessToken);
       const currentTime = Date.now() / 1000;
 
       console.log('Token expiration details:', {

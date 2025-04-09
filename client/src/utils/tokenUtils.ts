@@ -11,7 +11,7 @@ interface DecodedToken {
 // Check if token is expired
 export const isTokenExpired = (token: string): boolean => {
   try {
-    const decoded = jwtDecode<DecodedToken>(token);
+    const decoded = jwtDecode.jwtDecode<DecodedToken>(token);
     const currentTime = Date.now() / 1000;
     return decoded.exp < currentTime;
   } catch (error) {
@@ -23,7 +23,7 @@ export const isTokenExpired = (token: string): boolean => {
 // Check if token will expire soon (within the specified seconds)
 export const isTokenExpiringSoon = (token: string, secondsThreshold = 120): boolean => {
   try {
-    const decoded = jwtDecode<DecodedToken>(token);
+    const decoded = jwtDecode.jwtDecode<DecodedToken>(token);
     const currentTime = Date.now() / 1000;
     return decoded.exp - currentTime < secondsThreshold;
   } catch (error) {
@@ -35,7 +35,7 @@ export const isTokenExpiringSoon = (token: string, secondsThreshold = 120): bool
 // Get token expiration time in seconds
 export const getTokenExpirationTime = (token: string): number | null => {
   try {
-    const decoded = jwtDecode<DecodedToken>(token);
+    const decoded = jwtDecode.jwtDecode<DecodedToken>(token);
     return decoded.exp;
   } catch (error) {
     console.error('Error decoding token:', error);
@@ -46,7 +46,7 @@ export const getTokenExpirationTime = (token: string): number | null => {
 // Get user info from token
 export const getUserInfoFromToken = (token: string): { userId: string; email?: string; role?: string } | null => {
   try {
-    const decoded = jwtDecode<DecodedToken>(token);
+    const decoded = jwtDecode.jwtDecode<DecodedToken>(token);
     return {
       userId: decoded.sub,
       email: decoded.email,

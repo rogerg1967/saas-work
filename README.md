@@ -1,110 +1,98 @@
+```markdown
 # SaaS Work
 
-SaaS Work is a platform designed to provide UK GDPR-compliant AI chatbots to organizations, created using Vue.js and Tailwind CSS for frontend, and an Express-based backend. The platform features detailed onboarding processes, role-based access control, and comprehensive subscription management powered by Stripe.
+SaaS Work is a SaaS platform designed to offer UK GDPR compliant AI chatbots to organizations. Built using Vue.js and Tailwind CSS, it includes a comprehensive database for storing data. The platform is designed with a detailed and professional hero page showcasing the platform's offerings and pricing, aiming to convert visitors into users through a guided registration and subscription process. Additionally, the application features role-based administration, AI chatbot management, dynamic model integration based on AI providers, and robust subscription management using Stripe.
 
 ## Overview
 
-SaaS Work adopts a microservices-style architecture with a clear separation between frontend and backend services.
+The project is architected with a clear separation between the frontend and backend, each built with modern, robust technologies:
+- **Frontend**: Developed using Vue.js and Tailwind CSS within the `client/` directory, it leverages Vite as the development server, and includes client-side routing using `react-router-dom`. The frontend requests are interfaced through `/api/` endpoints to communicate with the backend.
+- **Backend**: Built using Express.js and housed in the `server/` directory, it features a REST API structure, interfacing with a MongoDB database using Mongoose. The backend also handles authentication using JWT tokens, integrated payment processing through Stripe, and various routes and services for managing users, organizations, and AI chatbot functionalities.
 
-### Architecture and Technologies
-
-**Frontend:**
-- **Framework:** Vue.js
-- **Styling:** Tailwind CSS
-- **Components:** Integrated shadcn-ui components
-- **Build Tool:** Vite
-- **Routing:** `react-router-dom`
-
-**Backend:**
-- **Server:** Express.js
-- **Database:** MongoDB with Mongoose
-- **Authentication:** JWT-based authentication (Bearer tokens)
-- **Subscription Management:** Stripe
+Both parts of the application run concurrently during development using a single command.
 
 ### Project Structure
 
 **Frontend:**
-
-    client/
-    ├── src/
-    │   ├── api/                   # API request definitions
-    │   ├── components/            # Reusable components
-    │   ├── hooks/                 # Custom hooks
-    │   ├── pages/                 # Page components
-    │   ├── App.tsx                # Main App component
-    │   └── main.tsx               # Entry point of the application
-    ├── public/                    # Static assets
-    ├── .env                       # Environment variables
-    └── vite.config.ts             # Vite configuration
+- **`client/`**
+  - `components/`: UI components and shared elements.
+  - `pages/`: Specific pages of the application.
+  - `api/`: API request abstractions and mock data management.
+  - `context/`: Context for global state management like authentication.
+  - `hooks/`: Custom hooks for various functionalities.
 
 **Backend:**
-
-    server/
-    ├── models/                    # Mongoose models
-    ├── routes/                    # API route handlers
-    ├── services/                  # Service layers for business logic
-    ├── utils/                     # Utility functions
-    ├── scripts/                   # Database seeding scripts
-    ├── .env                       # Environment variables
-    └── server.js                  # Entry point for the server
+- **`server/`**
+  - `models/`: Mongoose schemas for data models.
+  - `routes/`: Route handlers for different API endpoints.
+  - `services/`: Service layers for business logic.
+  - `utils/`: Utility functions for authentication, password management, etc.
+  - `config/`: Configuration files for database and server setup.
+  - `constants/`: Constants for role definitions and other static values.
 
 ## Features
 
-- **GDPR-compliant AI Chatbots:** Provides UK GDPR-compliant AI chatbot solutions powered by OpenAI or other AI providers.
-- **Role-Based Access Control:** Supports roles including Admin, Organization Manager, and Team Member.
-- **Subscription Management:** Uses Stripe to handle subscription payments, status updates, and invoice management.
-- **Real-Time Data:** Updates dashboard with real-time data about active users.
-- **Organization Management:** Administrators manage organizations and users via a dedicated interface.
-- **Profile Management:** Users can edit their profile details and reset passwords.
-- **Dynamic Model Selection:** Integrates with AI providers to fetch and display the latest model options.
+- **Professional Hero Page**: A detailed and engaging hero page with platform information and pricing options.
+- **User and Organization Management**: Role-based access with SAAS admins managing organizations and users joining existing organizations upon admin approval.
+- **Dynamic AI Model Integration**: Integration with AI providers like OpenAI to dynamically fetch and display available AI models.
+- **Subscription Management**: Comprehensive subscription management using Stripe, including plan selection, payments, and invoicing.
+- **Chatbot Management**: Creation, editing, and deletion of AI chatbots, with user-friendly error messaging and clarification.
+- **Real-time Data**: Real-time active users display on the dashboard, requiring backend services to track and update user activities.
+- **User Profile and Settings**: Users can edit their profiles, reset passwords, and manage personal details from their profile pages.
+- **Error Handling and Messaging**: User-friendly error messages and toast notifications for better user experience and troubleshooting.
+- **Authentication and Security**: Robust JWT-based authentication with access and refresh tokens, and secure handling of password changes and validations.
 
-## Getting started
+## Getting Started
 
 ### Requirements
 
-Make sure you have the following installed on your development environment:
-
-- **Node.js** (version 14 or newer)
-- **npm** (version 6 or newer)
-- **MongoDB** (version 4 or newer)
+To run this project locally, ensure you have the following technologies installed on your system:
+- Node.js (16.x or higher)
+- npm (8.x or higher)
+- MongoDB (4.x or higher)
 
 ### Quickstart
 
+Follow these steps to set up the project locally:
+
 1. **Clone the repository:**
    ```sh
-   git clone <repository-url>
+   git clone https://github.com/yourusername/saas-work.git
    cd saas-work
    ```
 
-2. **Setup environment variables:**
-   Create a `.env` file in both `client/` and `server/` directories and configure it as outlined in the respective `.env.example` files.
-
-3. **Install dependencies:**
+2. **Install dependencies:**
    ```sh
    npm install
-   cd client && npm install
-   cd ../server && npm install
-   cd ..
    ```
 
-4. **Run MongoDB:**
-   Ensure your MongoDB server is running locally or update the database connection string in the `.env` file.
+3. **Set up environment variables:**
+   Create a `.env` file in the `server/` directory with the following content:
+   ```
+   PORT=3000
+   DB_HOST=mongodb://localhost:27017/saaswork
+   JWT_SECRET=your_jwt_secret
+   JWT_REFRESH_SECRET=your_refresh_token_secret
+   STRIPE_SECRET_KEY=your_stripe_secret_key
+   ```
 
-5. **Seed the database:**
+4. **Seed the database:**
+   Run the seed script to populate the database with initial data:
    ```sh
-   cd server
-   node scripts/seed.js
-   cd ..
+   node server/scripts/seed.js
    ```
 
-6. **Start the application:**
+5. **Start the development server:**
    ```sh
    npm run start
    ```
-   This command will concurrently run both the frontend and backend servers:
-   - Frontend server: http://localhost:5173
-   - Backend server: http://localhost:3000
+
+   - The frontend will be available at: `http://localhost:5173/`
+   - The backend API will run at: `http://localhost:3000/`
 
 ### License
 
-The project is proprietary (not open source). Copyright (c) 2024.
+The project is proprietary. All rights reserved.
+
+Copyright (c) 2024.
+```

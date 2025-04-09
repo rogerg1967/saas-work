@@ -1,5 +1,5 @@
 import axios, { AxiosRequestConfig, AxiosError } from 'axios';
-import { jwtDecode } from 'jwt-decode';
+import * as jwtDecode from 'jwt-decode';
 
 const api = axios.create({
   baseURL: '',
@@ -30,7 +30,7 @@ const onTokenRefreshed = (token: string) => {
 // Function to check if token is about to expire
 const isTokenExpiringSoon = (token: string): boolean => {
   try {
-    const decoded: any = jwtDecode(token);
+    const decoded: any = jwtDecode.jwtDecode(token);
     const currentTime = Date.now() / 1000;
 
     // If token expires in less than 2 minutes, consider it expiring soon
@@ -149,7 +149,7 @@ api.interceptors.response.use(
       isRetry: !!(error.config as any)?._retry,
       isRefreshing
     });
-    
+
     console.error('Response error:', error.response?.status, error.response?.data);
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
