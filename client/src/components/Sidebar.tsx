@@ -25,15 +25,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { USER_ROLES } from "@/constants/userRoles";
 
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Chatbots", href: "/chatbots", icon: MessageSquare },
-  { name: "Organizations", href: "/organizations", icon: Building2 },
-  { name: "Team", href: "/team", icon: Users },
-  { name: "Settings", href: "/settings", icon: Settings },
-  { name: "Admin", href: "/admin", icon: Shield },
-  { name: "Subscription", href: "/subscription-management", icon: CreditCard },
+const navigationItems = [
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: [USER_ROLES.ADMIN, USER_ROLES.ORGANIZATION_MANAGER] },
+  { name: "Chatbots", href: "/chatbots", icon: MessageSquare, roles: [USER_ROLES.ADMIN, USER_ROLES.ORGANIZATION_MANAGER, USER_ROLES.TEAM_MEMBER] },
+  { name: "Organizations", href: "/organizations", icon: Building2, roles: [USER_ROLES.ADMIN] },
+  { name: "Team", href: "/team", icon: Users, roles: [USER_ROLES.ADMIN, USER_ROLES.ORGANIZATION_MANAGER, USER_ROLES.TEAM_MEMBER] },
+  { name: "Settings", href: "/settings", icon: Settings, roles: [USER_ROLES.ADMIN, USER_ROLES.ORGANIZATION_MANAGER] },
+  { name: "Admin", href: "/admin", icon: Shield, roles: [USER_ROLES.ADMIN] },
+  { name: "Subscription", href: "/subscription-management", icon: CreditCard, roles: [USER_ROLES.ADMIN, USER_ROLES.ORGANIZATION_MANAGER, USER_ROLES.TEAM_MEMBER] },
 ];
 
 export function Sidebar() {
@@ -85,6 +86,11 @@ export function Sidebar() {
       .substring(0, 2);
   };
 
+  // Filter navigation items based on user role
+  const filteredNavigation = currentUser
+    ? navigationItems.filter(item => item.roles.includes(currentUser.role))
+    : [];
+
   return (
     <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
       <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 pb-4">
@@ -95,7 +101,7 @@ export function Sidebar() {
           <ul role="list" className="flex flex-1 flex-col gap-y-7">
             <li>
               <ul role="list" className="-mx-2 space-y-1">
-                {navigation.map((item) => (
+                {filteredNavigation.map((item) => (
                   <li key={item.name}>
                     <NavLink
                       to={item.href}
