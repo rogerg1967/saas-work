@@ -209,6 +209,44 @@ class ChatbotService {
       throw error;
     }
   }
+
+  /**
+   * Check if a user has access to a chatbot
+   * @param {string} userId - The user ID
+   * @param {Object} chatbot - The chatbot object
+   * @returns {Promise<boolean>} Whether the user has access
+   */
+  static async userHasAccess(userId, chatbot) {
+    try {
+      console.log(`Checking if user ${userId} has access to chatbot ${chatbot._id}`);
+
+      // Fetch the user
+      const User = require('../models/User');
+      const user = await User.findById(userId);
+
+      if (!user) {
+        console.log(`User ${userId} not found`);
+        return false;
+      }
+
+      // Admin users have access to all chatbots
+      if (user.role === 'admin') {
+        console.log(`User ${userId} is an admin, access granted`);
+        return true;
+      }
+
+      // Check if the user belongs to the same organization as the chatbot
+      const hasAccess = user.organizationId &&
+        chatbot.organizationId &&
+        user.organizationId.toString() === chatbot.organizationId.toString();
+
+      console.log(`User ${userId} ${hasAccess ? 'has' : 'does not have'} access to chatbot ${chatbot._id}`);
+      return hasAccess;
+    } catch (error) {
+      console.error(`Error checking user access: ${error.message}`, error);
+      return false;
+    }
+  }
 }
 
 module.exports = ChatbotService;

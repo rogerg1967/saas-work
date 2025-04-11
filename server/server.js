@@ -5,6 +5,7 @@ const express = require("express");
 const session = require("express-session");
 const MongoStore = require('connect-mongo');
 const path = require('path');
+const fs = require('fs');
 const basicRoutes = require("./routes/index");
 const authRoutes = require("./routes/authRoutes");
 const subscriptionRoutes = require("./routes/subscriptionRoutes");
@@ -39,6 +40,13 @@ app.use('/api/stripe/webhook', stripeWebhooks);
 // Regular parsers for other routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('Created uploads directory');
+}
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

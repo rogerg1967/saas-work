@@ -267,10 +267,14 @@ router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage,
     console.log(`Processing message for chatbot ID: ${req.params.id}`);
     const userId = req.user._id;
     const { message } = req.body;
-    const file = req.file;
+    const image = req.file;
+
+    console.log(`Received message request for chatbot ${req.params.id} from user ${userId}`);
+    console.log(`Message content: ${message || '(empty)'}`);
+    console.log(`Image attached: ${image ? 'Yes' : 'No'}`);
 
     // Validate input - require either message or image
-    if (!message && !file) {
+    if (!message && !image) {
       console.error('No message or image provided');
       return res.status(400).json({
         success: false,
@@ -303,9 +307,9 @@ router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage,
     let imagePath = null;
 
     // Save image if it exists
-    if (file) {
+    if (image) {
       console.log('Processing image upload');
-      imagePath = await MessageService.saveImage(file);
+      imagePath = await MessageService.saveImage(image);
       console.log(`Image saved at ${imagePath}`);
     }
 
