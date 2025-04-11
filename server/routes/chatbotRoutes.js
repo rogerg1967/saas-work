@@ -257,61 +257,79 @@ router.get('/:id/conversation', requireUser, requireSubscription, async (req, re
   }
 });
 
-// Send a message to a chatbot
+/**
+ * @route POST /api/chatbots/:id/message
+ * @desc Send a message to a chatbot
+ * @access Private
+ */
 router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage, async (req, res) => {
   try {
-    console.log(`Sending message to chatbot with ID: ${req.params.id}`);
+    console.log(`Processing message for chatbot ID: ${req.params.id}`);
+    const userId = req.user._id;
+    const { message } = req.body;
+    const file = req.file;
+
+    // Validate input - require either message or image
+    if (!message && !file) {
+      console.error('No message or image provided');
+      return res.status(400).json({
+        success: false,
+        error: 'Message or image is required'
+      });
+    }
+
+    // Get chatbot
     const chatbot = await ChatbotService.getById(req.params.id);
 
     if (!chatbot) {
-      console.log(`Chatbot with ID ${req.params.id} not found`);
-      return res.status(404).json({ error: 'Chatbot not found' });
+      console.error(`Chatbot not found with ID: ${req.params.id}`);
+      return res.status(404).json({
+        success: false,
+        error: 'Chatbot not found'
+      });
     }
 
-    // Skip organization check for admin users
-    if (req.user.role !== 'admin') {
-      // Verify the chatbot belongs to the user's organization
-      if (chatbot.organizationId.toString() !== req.user.organizationId.toString()) {
-        console.warn(`User from organization ${req.user.organizationId} attempted to access chatbot from organization ${chatbot.organizationId}`);
-        return res.status(403).json({ error: 'You do not have permission to access this chatbot' });
-      }
-    } else {
-      console.log(`Admin user sending message to chatbot from organization ${chatbot.organizationId}`);
+    // Check if user has access to this chatbot
+    const hasAccess = await ChatbotService.userHasAccess(userId, chatbot);
+
+    if (!hasAccess) {
+      console.error(`User ${userId} does not have access to chatbot ${req.params.id}`);
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have access to this chatbot'
+      });
     }
 
-    const { message } = req.body;
-
-    if (!message && !req.file) {
-      return res.status(400).json({ error: 'Message or image is required' });
-    }
-
-    // Process image if provided
     let imagePath = null;
-    if (req.file) {
-      imagePath = await MessageService.saveImage(req.file);
+
+    // Save image if it exists
+    if (file) {
+      console.log('Processing image upload');
+      imagePath = await MessageService.saveImage(file);
+      console.log(`Image saved at ${imagePath}`);
     }
 
-    // Process message with LLM and save to database
+    // Process message
     const response = await MessageService.processMessage(
       chatbot,
-      message || "Image message",
-      req.user._id,
+      message || '',
+      userId,
       imagePath
     );
 
-    // Format response for client
-    const responseObj = {
-      id: response._id.toString(),
+    res.json({
+      success: true,
+      id: response._id,
       role: response.role,
       content: response.content,
-      timestamp: response.timestamp.toISOString()
-    };
-
-    console.log(`Successfully processed message for chatbot: ${chatbot.name}`);
-    res.json(responseObj);
+      timestamp: response.timestamp
+    });
   } catch (error) {
     console.error(`Error processing message: ${error.message}`, error);
-    res.status(500).json({ error: `Failed to process message: ${error.message}` });
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to process message'
+    });
   }
 });
 

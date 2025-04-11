@@ -3,6 +3,8 @@ const dotenv = require('dotenv');
 const OpenAI = require('openai');
 const Anthropic = require('@anthropic-ai/sdk');
 const LLMSettings = require('../models/LLMSettings');
+const fs = require('fs');
+const path = require('path');
 
 dotenv.config();
 
@@ -126,14 +128,89 @@ async function getAnthropicClient() {
   }
 }
 
-async function sendRequestToOpenAI(model, message) {
+/**
+ * Converts an image file path to base64 format for API requests
+ * @param {string} imagePath - Path to the image file
+ * @returns {Promise<string>} Base64-encoded image data
+ */
+async function imageToBase64(imagePath) {
+  try {
+    // Handle relative paths by making them absolute
+    const absolutePath = imagePath.startsWith('/')
+      ? path.join(__dirname, '..', imagePath)
+      : path.join(__dirname, '../..', imagePath);
+
+    console.log(`Reading image from: ${absolutePath}`);
+
+    // Read the file as a buffer
+    const imageBuffer = await fs.promises.readFile(absolutePath);
+
+    // Convert to base64
+    const base64Image = imageBuffer.toString('base64');
+
+    return base64Image;
+  } catch (error) {
+    console.error(`Error converting image to base64: ${error.message}`);
+    throw error;
+  }
+}
+
+async function sendRequestToOpenAI(model, message, imagePath = null) {
   const client = await getOpenAIClient();
 
   for (let i = 0; i < MAX_RETRIES; i++) {
     try {
+      let messageContent = message;
+      let messages = [];
+
+      // Handle image if present
+      if (imagePath) {
+        console.log(`Processing image for OpenAI: ${imagePath}`);
+        // Only GPT-4 Vision model supports image input
+        if (model.includes('gpt-4') && !model.includes('gpt-4o')) {
+          try {
+            // Read and convert image to base64
+            const base64Image = await imageToBase64(imagePath);
+
+            // Format message with image for GPT-4 Vision
+            messages = [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: message },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: `data:image/jpeg;base64,${base64Image}`
+                    }
+                  }
+                ]
+              }
+            ];
+            console.log('Successfully prepared image for OpenAI analysis');
+          } catch (imageError) {
+            console.error('Error processing image for OpenAI:', imageError);
+            // Fall back to text-only if image processing fails
+            messages = [{
+              role: 'user',
+              content: `${message} (Note: I tried to share an image with you, but there was an error processing it)`
+            }];
+          }
+        } else {
+          // For non-vision models, just mention the image in the text
+          messages = [{
+            role: 'user',
+            content: `${message} (Note: The user uploaded an image, but I cannot view it with my current configuration. Please use GPT-4 Vision for image analysis.)`
+          }];
+        }
+      } else {
+        // Standard text message
+        messages = [{ role: 'user', content: message }];
+      }
+
       const response = await client.chat.completions.create({
         model: model,
-        messages: [{ role: 'user', content: message }],
+        messages: messages,
         max_tokens: 1024,
       });
       return response.choices[0].message.content;
@@ -145,7 +222,7 @@ async function sendRequestToOpenAI(model, message) {
   }
 }
 
-async function sendRequestToAnthropic(model, message) {
+async function sendRequestToAnthropic(model, message, imagePath = null) {
   const client = await getAnthropicClient();
 
   // Map simplified model names to the full Anthropic model IDs
@@ -160,12 +237,55 @@ async function sendRequestToAnthropic(model, message) {
 
   for (let i = 0; i < MAX_RETRIES; i++) {
     try {
-      console.log(`Sending request to Anthropic with model: ${fullModelName} (mapped from ${model}) and message: ${message}`);
+      let messageContent = [];
+
+      // Handle image for Claude 3 models (which support images)
+      if (imagePath && fullModelName.includes('claude-3')) {
+        console.log(`Processing image for Anthropic: ${imagePath}`);
+        try {
+          // Read and convert image to base64
+          const base64Image = await imageToBase64(imagePath);
+
+          // Format content with image for Claude
+          messageContent = [
+            { type: 'text', text: message },
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: 'image/jpeg',
+                data: base64Image
+              }
+            }
+          ];
+          console.log('Successfully prepared image for Anthropic analysis');
+        } catch (imageError) {
+          console.error('Error processing image for Anthropic:', imageError);
+          // Fall back to text-only if image processing fails
+          messageContent = [{
+            type: 'text',
+            text: `${message} (Note: I tried to share an image with you, but there was an error processing it)`
+          }];
+        }
+      } else if (imagePath) {
+        // For non-Claude 3 models, just mention the image in the text
+        messageContent = [{
+          type: 'text',
+          text: `${message} (Note: The user uploaded an image, but I cannot view it with my current configuration. Please use Claude 3 for image analysis.)`
+        }];
+      } else {
+        // Standard text message
+        messageContent = [{ type: 'text', text: message }];
+      }
+
+      console.log(`Sending request to Anthropic with model: ${fullModelName} (mapped from ${model})`);
+
       const response = await client.messages.create({
         model: fullModelName,
-        messages: [{ role: 'user', content: message }],
+        messages: [{ role: 'user', content: messageContent }],
         max_tokens: 1024,
       });
+
       console.log(`Received response from Anthropic: ${JSON.stringify(response.content)}`);
       return response.content[0].text;
     } catch (error) {
@@ -176,22 +296,22 @@ async function sendRequestToAnthropic(model, message) {
   }
 }
 
-async function sendLLMRequest(provider, model, message) {
-  console.log(`Sending LLM request to ${provider} with model ${model}`);
+async function sendLLMRequest(provider, model, message, imagePath = null) {
+  console.log(`Sending LLM request to ${provider} with model ${model}${imagePath ? ' including image analysis' : ''}`);
 
   try {
     switch (provider.toLowerCase()) {
       case 'openai':
-        return await sendRequestToOpenAI(model, message);
+        return await sendRequestToOpenAI(model, message, imagePath);
       case 'anthropic':
-        return await sendRequestToAnthropic(model, message);
+        return await sendRequestToAnthropic(model, message, imagePath);
       default:
         throw new Error(`Unsupported LLM provider: ${provider}`);
     }
   } catch (error) {
     console.error(`LLM request failed: ${error.message}`);
     // Return a default message instead of crashing
-    return "I'm sorry, I encountered an error processing your request. The AI service may not be properly configured.";
+    return "I'm sorry, I encountered an error processing your request. The AI service may not be properly configured or may not support image analysis with the current model.";
   }
 }
 

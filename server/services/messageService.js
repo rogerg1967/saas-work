@@ -82,6 +82,7 @@ class MessageService {
   static async processMessage(chatbot, content, userId, imagePath = null) {
     try {
       console.log(`Processing message for chatbot with ID: ${chatbot._id}`);
+      console.log(`Image path: ${imagePath ? imagePath : 'No image'}`);
 
       // Create user message
       const userMessage = {
@@ -94,17 +95,20 @@ class MessageService {
 
       const savedUserMessage = await this.create(userMessage);
 
-      // Process with LLM
-      let prompt = content;
-      if (imagePath) {
-        prompt += " (Note: The user also sent an image with this message)";
+      // Prepare message prompt
+      let prompt = content || '';
+
+      // If content is empty but there's an image, add a default prompt
+      if (!content && imagePath) {
+        prompt = "Please analyze this image and tell me what you see.";
       }
 
-      const { sendLLMRequest } = require('./llmService');
-      const assistantResponse = await sendLLMRequest(
+      // Process with LLM
+      const assistantResponse = await LLMService.sendLLMRequest(
         chatbot.provider,
         chatbot.model,
-        prompt
+        prompt,
+        imagePath  // Pass the image path to LLM service
       );
 
       // Create assistant message

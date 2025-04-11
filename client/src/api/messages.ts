@@ -16,8 +16,6 @@ export const sendMessage = async (chatbotId: string, message: string, image?: Fi
       formData.append('image', image);
     }
 
-    // Note: The model parameter is ignored because the chatbot already has a model configured
-
     const response = await api.post(`/api/chatbots/${chatbotId}/message`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -47,12 +45,21 @@ export const getChatHistory = async (chatbotId: string) => {
 
 // Description: Get available AI models for chat
 // Endpoint: GET /api/messages/models
-// Request: { provider?: string }
+// Request: { provider?: string, capabilities?: string[] }
 // Response: { success: boolean, models: Array<{ id: string, name: string, provider: string, capabilities: string[] }> }
-export const getAvailableModels = async (provider?: string) => {
+export const getAvailableModels = async (provider?: string, capabilities?: string[]) => {
   try {
-    const params = provider ? { provider } : {};
-    const response = await api.get('/api/messages/models', { params });
+    let params: any = {};
+
+    if (provider) {
+      params.provider = provider;
+    }
+
+    if (capabilities && capabilities.length) {
+      params.capabilities = capabilities.join(',');
+    }
+
+    const response = await api.get('/api/llm/models', { params });
     return response.data;
   } catch (error) {
     console.error('Error fetching available models:', error);

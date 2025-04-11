@@ -3,19 +3,19 @@
  */
 class AIModelService {
   /**
-   * Get all available AI models
-   * @returns {Array} List of available AI models
+   * Get list of all available AI models
+   * @returns {Array} List of available models
    */
   static getAvailableModels() {
-    // In a production environment, this might fetch from a database or
-    // dynamically from provider APIs.
-
+    // This is a list of all models available across providers
+    // In a production environment, this might be fetched from a database
+    // or from the provider's API
     const openAIModels = [
       {
         id: 'gpt-4o',
         name: 'GPT-4o',
         provider: 'OpenAI',
-        capabilities: ['text', 'images']
+        capabilities: ['text']
       },
       {
         id: 'gpt-4-turbo',
@@ -27,7 +27,7 @@ class AIModelService {
         id: 'gpt-4-vision-preview',
         name: 'GPT-4 Vision',
         provider: 'OpenAI',
-        capabilities: ['text', 'images']
+        capabilities: ['text', 'image']
       },
       {
         id: 'gpt-4',
@@ -72,21 +72,21 @@ class AIModelService {
         id: 'claude-3-opus',
         name: 'Claude 3 Opus',
         provider: 'Anthropic',
-        capabilities: ['text', 'images'],
+        capabilities: ['text', 'image'],
         apiId: 'claude-3-opus-20240229'
       },
       {
         id: 'claude-3-sonnet',
         name: 'Claude 3 Sonnet',
         provider: 'Anthropic',
-        capabilities: ['text', 'images'],
+        capabilities: ['text', 'image'],
         apiId: 'claude-3-sonnet-20240229'
       },
       {
         id: 'claude-3-haiku',
         name: 'Claude 3 Haiku',
         provider: 'Anthropic',
-        capabilities: ['text', 'images'],
+        capabilities: ['text', 'image'],
         apiId: 'claude-3-haiku-20240307'
       },
       {
@@ -102,9 +102,9 @@ class AIModelService {
   }
 
   /**
-   * Get models for a specific provider
-   * @param {string} provider - The provider name (e.g., 'OpenAI', 'Anthropic')
-   * @returns {Array} List of models for the specified provider
+   * Filter models by provider
+   * @param {string} provider Provider name
+   * @returns {Array} Filtered list of models
    */
   static getModelsByProvider(provider) {
     const allModels = this.getAvailableModels();
@@ -121,14 +121,38 @@ class AIModelService {
   static getAnthropicApiModelId(modelId) {
     const models = this.getAvailableModels();
     const model = models.find(m => m.id === modelId && m.provider === 'Anthropic');
-    
+
     if (model && model.apiId) {
       console.log(`Mapping Anthropic model ${modelId} to API ID ${model.apiId}`);
       return model.apiId;
     }
-    
+
     console.log(`No API ID mapping found for Anthropic model ${modelId}, using as-is`);
     return modelId;
+  }
+
+  /**
+   * Filter models by capability
+   * @param {string} capability Capability name (e.g., 'text', 'image')
+   * @returns {Array} Filtered list of models
+   */
+  static getModelsByCapability(capability) {
+    const models = this.getAvailableModels();
+    return models.filter(model =>
+      model.capabilities.includes(capability)
+    );
+  }
+
+  /**
+   * Check if a model supports a specific capability
+   * @param {string} modelId Model ID
+   * @param {string} capability Capability to check
+   * @returns {boolean} Whether the model supports the capability
+   */
+  static hasCapability(modelId, capability) {
+    const models = this.getAvailableModels();
+    const model = models.find(m => m.id === modelId);
+    return model ? model.capabilities.includes(capability) : false;
   }
 }
 
