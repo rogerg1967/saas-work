@@ -228,13 +228,15 @@ export function Chat() {
       setMessages((prev) => [...prev, userMessage]);
 
       // Send the message to the backend
+      console.log(`Sending message to chatbot ${id}${selectedImage ? ' with image' : ''}`);
       const response = await sendMessage(id, messageContent, selectedImage, selectedModel);
+      console.log('Received response:', response);
 
       // Create the assistant message from the response
       const assistantMessage: Message = {
         id: response.id || Date.now().toString() + "-assistant",
         role: response.role || "assistant",
-        content: response.content, // This is the key change - use content instead of response
+        content: response.content,
         timestamp: response.timestamp || new Date().toISOString(),
       };
 

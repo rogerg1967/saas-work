@@ -272,6 +272,13 @@ router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage,
     console.log(`Received message request for chatbot ${req.params.id} from user ${userId}`);
     console.log(`Message content: ${message || '(empty)'}`);
     console.log(`Image attached: ${image ? 'Yes' : 'No'}`);
+    if (image) {
+      console.log(`Image details: ${JSON.stringify({
+        filename: image.originalname,
+        mimetype: image.mimetype,
+        size: image.size
+      })}`);
+    }
 
     // Validate input - require either message or image
     if (!message && !image) {
@@ -314,6 +321,7 @@ router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage,
     }
 
     // Process message
+    console.log(`Sending to MessageService.processMessage with chatbot model: ${chatbot.model}, provider: ${chatbot.provider}`);
     const response = await MessageService.processMessage(
       chatbot,
       message || '',
@@ -321,6 +329,7 @@ router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage,
       imagePath
     );
 
+    console.log(`Successfully processed message, response ID: ${response._id}`);
     res.json({
       success: true,
       id: response._id,

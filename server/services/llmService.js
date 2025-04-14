@@ -136,17 +136,25 @@ async function getAnthropicClient() {
 async function imageToBase64(imagePath) {
   try {
     // Handle relative paths by making them absolute
-    const absolutePath = imagePath.startsWith('/')
-      ? path.join(__dirname, '..', imagePath)
-      : path.join(__dirname, '../..', imagePath);
+    const absolutePath = path.resolve(
+      imagePath.startsWith('/') ? path.join(__dirname, '..', imagePath) : path.join(__dirname, '../..', imagePath)
+    );
 
-    console.log(`Reading image from: ${absolutePath}`);
+    console.log(`Reading image from absolute path: ${absolutePath}`);
+
+    // Check if file exists
+    if (!fs.existsSync(absolutePath)) {
+      console.error(`Image file not found at path: ${absolutePath}`);
+      throw new Error(`Image file not found at path: ${absolutePath}`);
+    }
 
     // Read the file as a buffer
     const imageBuffer = await fs.promises.readFile(absolutePath);
+    console.log(`Successfully read image file, size: ${imageBuffer.length} bytes`);
 
     // Convert to base64
     const base64Image = imageBuffer.toString('base64');
+    console.log(`Successfully converted image to base64, length: ${base64Image.length}`);
 
     return base64Image;
   } catch (error) {

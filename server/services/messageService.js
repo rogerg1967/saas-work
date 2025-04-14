@@ -83,6 +83,7 @@ class MessageService {
     try {
       console.log(`Processing message for chatbot with ID: ${chatbot._id}`);
       console.log(`Image path: ${imagePath ? imagePath : 'No image'}`);
+      console.log(`Using provider: ${chatbot.provider}, model: ${chatbot.model}`);
 
       // Create user message
       const userMessage = {
@@ -94,6 +95,7 @@ class MessageService {
       };
 
       const savedUserMessage = await this.create(userMessage);
+      console.log(`Saved user message with ID: ${savedUserMessage._id}`);
 
       // Prepare message prompt
       let prompt = content || '';
@@ -101,15 +103,19 @@ class MessageService {
       // If content is empty but there's an image, add a default prompt
       if (!content && imagePath) {
         prompt = "Please analyze this image and tell me what you see.";
+        console.log(`Using default prompt for image-only message: "${prompt}"`);
       }
 
       // Process with LLM
+      console.log(`Sending request to LLM service with image: ${imagePath ? 'Yes' : 'No'}`);
       const assistantResponse = await LLMService.sendLLMRequest(
         chatbot.provider,
         chatbot.model,
         prompt,
         imagePath  // Pass the image path to LLM service
       );
+
+      console.log(`Received response from LLM service: ${assistantResponse.substring(0, 100)}...`);
 
       // Create assistant message
       const assistantMessage = {
@@ -120,6 +126,7 @@ class MessageService {
       };
 
       const savedAssistantMessage = await this.create(assistantMessage);
+      console.log(`Saved assistant message with ID: ${savedAssistantMessage._id}`);
 
       return savedAssistantMessage;
     } catch (error) {
