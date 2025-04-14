@@ -197,6 +197,44 @@ async function modelSupportsVision(model, provider) {
   return false;
 }
 
+/**
+ * Format conversation history for OpenAI
+ * @param {Array} history - Conversation history array
+ * @returns {Array} Formatted history for OpenAI
+ */
+async function formatHistoryForOpenAI(history) {
+  if (!history || !history.length) return [];
+
+  return history.map(message => ({
+    role: message.role,
+    content: message.content
+  }));
+}
+
+/**
+ * Format conversation history for Anthropic
+ * @param {Array} history - Conversation history array
+ * @returns {Array} Formatted history for Anthropic
+ */
+async function formatHistoryForAnthropic(history) {
+  if (!history || !history.length) return [];
+
+  return history.map(message => {
+    // Convert message roles if needed (Anthropic expects 'user' and 'assistant')
+    const role = message.role === 'system' ? 'assistant' : message.role;
+
+    // Handle text or complex content
+    let content;
+    if (typeof message.content === 'string') {
+      content = [{ type: 'text', text: message.content }];
+    } else {
+      content = message.content;
+    }
+
+    return { role, content };
+  });
+}
+
 async function sendRequestToOpenAI(model, message, history = [], imagePath = null) {
   const client = await getOpenAIClient();
 
@@ -212,11 +250,9 @@ async function sendRequestToOpenAI(model, message, history = [], imagePath = nul
 
       // Add conversation history if provided
       if (history && history.length > 0) {
-        console.log(`Adding ${history.length} messages from conversation history`);
-        messages = messages.concat(history.map(item => ({
-          role: item.role,
-          content: item.content
-        })));
+        console.log(`Adding ${history.length} messages from conversation history to OpenAI request`);
+        const formattedHistory = await formatHistoryForOpenAI(history);
+        messages = messages.concat(formattedHistory);
       }
 
       // Handle image if present
@@ -297,11 +333,9 @@ async function sendRequestToAnthropic(model, message, history = [], imagePath = 
 
       // Add conversation history if provided
       if (history && history.length > 0) {
-        console.log(`Adding ${history.length} messages from conversation history`);
-        messages = history.map(item => ({
-          role: item.role,
-          content: item.content
-        }));
+        console.log(`Adding ${history.length} messages from conversation history to Anthropic request`);
+        const formattedHistory = await formatHistoryForAnthropic(history);
+        messages = formattedHistory;
       }
 
       let messageContent = [];
@@ -385,71 +419,16 @@ async function sendLLMRequestWithHistory(provider, model, prompt, history = [], 
     console.log(`Sending LLM request to ${provider} using model ${model}`);
     console.log(`With conversation history: ${history.length} messages`);
 
-    // Get the appropriate client for the provider
-    const client = provider.toLowerCase() === 'openai' ? 
-      await getOpenAIClient() : 
-      await getAnthropicClient();
-
-    // Get LLM settings
-    const settings = await getLLMSettings();
-
-    // Prepare the messages array with history and new prompt
-    let messages = [];
-
-    // Add system message if available
-    if (settings && settings.systemPrompt) {
-      messages.push({
-        role: 'system',
-        content: settings.systemPrompt
+    // Log the first few messages of history for debugging
+    if (history.length > 0) {
+      console.log(`History sample (first ${Math.min(3, history.length)} messages):`);
+      history.slice(0, 3).forEach((msg, i) => {
+        console.log(`[${i}] Role: ${msg.role}, Content: ${typeof msg.content === 'string' ? msg.content.substring(0, 50) + '...' : '[Complex content]'}`);
       });
     }
 
-    // Add conversation history
-    if (history && history.length > 0) {
-      messages = messages.concat(history);
-    }
-
-    // Add the current user message
-    let userMessage = {
-      role: 'user',
-      content: prompt
-    };
-
-    // Handle image if provided
-    if (imagePath) {
-      // For OpenAI
-      if (provider.toLowerCase() === 'openai') {
-        // Check if model supports vision
-        const supportsVision = await modelSupportsVision(model, provider);
-
-        if (supportsVision) {
-          // Format for OpenAI vision models
-          const imageUrl = await getFullImageUrl(imagePath);
-          userMessage.content = [
-            { type: 'text', text: prompt },
-            {
-              type: 'image_url',
-              image_url: {
-                url: imageUrl
-              }
-            }
-          ];
-        } else {
-          console.warn(`Model ${model} does not support vision. Ignoring image.`);
-        }
-      }
-      // For Anthropic (Claude)
-      else if (provider.toLowerCase() === 'anthropic') {
-        // Format for Anthropic models
-        const imageUrl = await getFullImageUrl(imagePath);
-        userMessage.content = [
-          { type: 'text', text: prompt },
-          { type: 'image', source: { type: 'url', url: imageUrl } }
-        ];
-      }
-    }
-
-    messages.push(userMessage);
+    // Get LLM settings
+    const settings = await getLLMSettings();
 
     // Send the request to the appropriate provider
     let response;

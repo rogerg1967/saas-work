@@ -20,6 +20,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { updateChatbotSettings, getChatbot } from "@/api/chat";
+import { Switch } from "@/components/ui/switch";
 
 type Message = {
   id: string;
@@ -48,6 +49,8 @@ export function Chat() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [chatbot, setChatbot] = useState(null);
+  const [historyEnabled, setHistoryEnabled] = useState<boolean>(true);
+  const [historyLimit, setHistoryLimit] = useState<number>(10);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -117,6 +120,10 @@ export function Chat() {
       setChatbot(data.chatbot);
       console.log("Successfully fetched chatbot details");
 
+      // Set history settings
+      setHistoryEnabled(data.chatbot.historyEnabled !== false); // Default to true if undefined
+      setHistoryLimit(data.chatbot.historyLimit || 10); // Default to 10 if undefined
+
       // If chatbot has provider and model set, use those instead of global settings
       if (data.chatbot.provider && data.chatbot.model) {
         // Capitalize the first letter of the provider name for display in the UI dropdown
@@ -166,11 +173,13 @@ export function Chat() {
     try {
       if (!id) return;
 
-      console.log(`Saving settings: provider=${selectedProvider.toLowerCase()}, model=${selectedModel}`);
+      console.log(`Saving settings: provider=${selectedProvider.toLowerCase()}, model=${selectedModel}, historyEnabled=${historyEnabled}, historyLimit=${historyLimit}`);
 
       await updateChatbotSettings(id, {
         provider: selectedProvider.toLowerCase(), // Make sure provider is lowercase for backend
-        model: selectedModel
+        model: selectedModel,
+        historyEnabled: historyEnabled,
+        historyLimit: historyLimit
       });
 
       toast({
@@ -336,6 +345,41 @@ export function Chat() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Remember Conversation History</label>
+                    <Switch
+                      checked={historyEnabled}
+                      onCheckedChange={setHistoryEnabled}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    When enabled, the AI will remember previous messages in this conversation.
+                  </p>
+                </div>
+                {historyEnabled && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">History Memory (messages)</label>
+                    <Select
+                      value={historyLimit.toString()}
+                      onValueChange={(value) => setHistoryLimit(parseInt(value))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select message limit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">5 messages</SelectItem>
+                        <SelectItem value="10">10 messages</SelectItem>
+                        <SelectItem value="20">20 messages</SelectItem>
+                        <SelectItem value="30">30 messages</SelectItem>
+                        <SelectItem value="50">50 messages</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Number of previous messages to include in each response.
+                    </p>
+                  </div>
+                )}
                 <Button
                   className="w-full mt-4"
                   onClick={saveChatbotSettings}
