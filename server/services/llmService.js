@@ -163,6 +163,40 @@ async function imageToBase64(imagePath) {
   }
 }
 
+/**
+ * Gets the full URL for an image, either as a base64 data URI or a server URL
+ * @param {string} imagePath - Path to the image file
+ * @returns {Promise<string>} Full image URL
+ */
+async function getFullImageUrl(imagePath) {
+  try {
+    // For local files, convert to base64
+    const base64Image = await imageToBase64(imagePath);
+    return `data:image/jpeg;base64,${base64Image}`;
+  } catch (error) {
+    console.error(`Error getting full image URL: ${error.message}`, error);
+    throw error;
+  }
+}
+
+/**
+ * Checks if a model supports vision capabilities
+ * @param {string} model - The model name
+ * @param {string} provider - The provider name
+ * @returns {Promise<boolean>} Whether the model supports vision
+ */
+async function modelSupportsVision(model, provider) {
+  // For OpenAI, only GPT-4 Vision models support image input
+  if (provider.toLowerCase() === 'openai') {
+    return model.includes('gpt-4') || model.includes('gpt-4o');
+  }
+  // For Anthropic, only Claude 3 models support images
+  else if (provider.toLowerCase() === 'anthropic') {
+    return model.includes('claude-3');
+  }
+  return false;
+}
+
 async function sendRequestToOpenAI(model, message, history = [], imagePath = null) {
   const client = await getOpenAIClient();
 
@@ -170,7 +204,7 @@ async function sendRequestToOpenAI(model, message, history = [], imagePath = nul
     try {
       // Initialize messages array with system message
       let messages = [
-        { 
+        {
           role: 'system',
           content: 'You are a helpful assistant that provides accurate, concise, and thoughtful responses.'
         }
@@ -337,23 +371,101 @@ async function sendLLMRequest(provider, model, message, imagePath = null) {
   return sendLLMRequestWithHistory(provider, model, message, [], imagePath);
 }
 
-async function sendLLMRequestWithHistory(provider, model, message, history = [], imagePath = null) {
-  console.log(`Sending LLM request to ${provider} with model ${model}${imagePath ? ' including image analysis' : ''}`);
-  console.log(`Conversation history contains ${history.length} messages`);
-
+/**
+ * Send a request to an LLM with conversation history
+ * @param {string} provider - The LLM provider (e.g., 'openai', 'anthropic')
+ * @param {string} model - The model to use
+ * @param {string} prompt - The user's prompt
+ * @param {Array} history - Conversation history
+ * @param {string} imagePath - Optional image path
+ * @returns {Promise<string>} The LLM response
+ */
+async function sendLLMRequestWithHistory(provider, model, prompt, history = [], imagePath = null) {
   try {
-    switch (provider.toLowerCase()) {
-      case 'openai':
-        return await sendRequestToOpenAI(model, message, history, imagePath);
-      case 'anthropic':
-        return await sendRequestToAnthropic(model, message, history, imagePath);
-      default:
-        throw new Error(`Unsupported LLM provider: ${provider}`);
+    console.log(`Sending LLM request to ${provider} using model ${model}`);
+    console.log(`With conversation history: ${history.length} messages`);
+
+    // Get the appropriate client for the provider
+    const client = provider.toLowerCase() === 'openai' ? 
+      await getOpenAIClient() : 
+      await getAnthropicClient();
+
+    // Get LLM settings
+    const settings = await getLLMSettings();
+
+    // Prepare the messages array with history and new prompt
+    let messages = [];
+
+    // Add system message if available
+    if (settings && settings.systemPrompt) {
+      messages.push({
+        role: 'system',
+        content: settings.systemPrompt
+      });
     }
+
+    // Add conversation history
+    if (history && history.length > 0) {
+      messages = messages.concat(history);
+    }
+
+    // Add the current user message
+    let userMessage = {
+      role: 'user',
+      content: prompt
+    };
+
+    // Handle image if provided
+    if (imagePath) {
+      // For OpenAI
+      if (provider.toLowerCase() === 'openai') {
+        // Check if model supports vision
+        const supportsVision = await modelSupportsVision(model, provider);
+
+        if (supportsVision) {
+          // Format for OpenAI vision models
+          const imageUrl = await getFullImageUrl(imagePath);
+          userMessage.content = [
+            { type: 'text', text: prompt },
+            {
+              type: 'image_url',
+              image_url: {
+                url: imageUrl
+              }
+            }
+          ];
+        } else {
+          console.warn(`Model ${model} does not support vision. Ignoring image.`);
+        }
+      }
+      // For Anthropic (Claude)
+      else if (provider.toLowerCase() === 'anthropic') {
+        // Format for Anthropic models
+        const imageUrl = await getFullImageUrl(imagePath);
+        userMessage.content = [
+          { type: 'text', text: prompt },
+          { type: 'image', source: { type: 'url', url: imageUrl } }
+        ];
+      }
+    }
+
+    messages.push(userMessage);
+
+    // Send the request to the appropriate provider
+    let response;
+
+    if (provider.toLowerCase() === 'openai') {
+      response = await sendRequestToOpenAI(model, prompt, history, imagePath);
+    } else if (provider.toLowerCase() === 'anthropic') {
+      response = await sendRequestToAnthropic(model, prompt, history, imagePath);
+    } else {
+      throw new Error(`Unsupported provider: ${provider}`);
+    }
+
+    return response;
   } catch (error) {
-    console.error(`LLM request failed: ${error.message}`);
-    // Return a default message instead of crashing
-    return "I'm sorry, I encountered an error processing your request. The AI service may not be properly configured or may not support image analysis with the current model.";
+    console.error(`Error sending LLM request with history: ${error.message}`, error);
+    throw error;
   }
 }
 

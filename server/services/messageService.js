@@ -113,13 +113,15 @@ class MessageService {
    * @param {string} content - The message content
    * @param {string} userId - The user ID
    * @param {string} imagePath - Optional image path
+   * @param {Array} conversationHistory - Previous conversation messages
    * @returns {Promise<Object>} The assistant response
    */
-  static async processMessage(chatbot, content, userId, imagePath = null) {
+  static async processMessage(chatbot, content, userId, imagePath = null, conversationHistory = []) {
     try {
       console.log(`Processing message for chatbot with ID: ${chatbot._id}`);
       console.log(`Image path: ${imagePath ? imagePath : 'No image'}`);
       console.log(`Using provider: ${chatbot.provider}, model: ${chatbot.model}`);
+      console.log(`Conversation history: ${conversationHistory.length} messages`);
 
       // Create user message
       const userMessage = {
@@ -141,11 +143,6 @@ class MessageService {
         prompt = "Please analyze this image and tell me what you see.";
         console.log(`Using default prompt for image-only message: "${prompt}"`);
       }
-
-      // Get conversation history
-      const historyLimit = chatbot.historyLimit || 10; // Default to 10 if not specified
-      console.log(`Fetching conversation history with limit: ${historyLimit}`);
-      const conversationHistory = await this.getConversationHistory(chatbot._id, historyLimit);
 
       // Format history for LLM
       const formattedHistory = this.formatConversationHistoryForLLM(conversationHistory);

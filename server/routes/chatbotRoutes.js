@@ -328,7 +328,7 @@ router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage,
 
     // Process message with conversation history
     console.log(`Sending to MessageService.processMessage with chatbot model: ${chatbot.model}, provider: ${chatbot.provider}`);
-    
+
     // Get conversation history if enabled
     let conversationHistory = [];
     if (chatbot.historyEnabled !== false) {
@@ -391,13 +391,13 @@ router.put('/:id/settings', requireUser, requireSubscription, async (req, res) =
     // Update the chatbot with new settings
     chatbot.provider = provider.toLowerCase();
     chatbot.model = model;
-    
+
     // Update history settings if provided
     if (historyEnabled !== undefined) {
       chatbot.historyEnabled = historyEnabled;
       console.log(`Setting conversation history to: ${historyEnabled ? 'enabled' : 'disabled'}`);
     }
-    
+
     if (historyLimit !== undefined) {
       // Validate history limit
       if (historyLimit < 0 || historyLimit > 50) {
@@ -406,7 +406,7 @@ router.put('/:id/settings', requireUser, requireSubscription, async (req, res) =
       chatbot.historyLimit = historyLimit;
       console.log(`Setting conversation history limit to: ${historyLimit}`);
     }
-    
+
     await chatbot.save();
 
     console.log(`Successfully updated settings for chatbot: ${chatbot.name}`);
