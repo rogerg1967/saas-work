@@ -5,16 +5,21 @@ const messageSchema = new Schema({
   chatbotId: {
     type: Schema.Types.ObjectId,
     ref: 'Chatbot',
-    required: [true, 'Chatbot ID is required']
+    required: [true, 'Chatbot is required']
+  },
+  threadId: {
+    type: Schema.Types.ObjectId,
+    ref: 'ChatThread',
+    required: [true, 'Thread is required']
   },
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'User ID is required']
+    required: [true, 'User is required']
   },
   role: {
     type: String,
-    enum: ['user', 'assistant'],
+    enum: ['user', 'assistant', 'system'],
     required: [true, 'Role is required']
   },
   content: {
@@ -22,8 +27,7 @@ const messageSchema = new Schema({
     required: [true, 'Content is required']
   },
   image: {
-    type: String, // URL or base64 representation of the image
-    default: null
+    type: String
   },
   timestamp: {
     type: Date,
