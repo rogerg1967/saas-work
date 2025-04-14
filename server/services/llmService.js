@@ -163,59 +163,72 @@ async function imageToBase64(imagePath) {
   }
 }
 
-async function sendRequestToOpenAI(model, message, imagePath = null) {
+async function sendRequestToOpenAI(model, message, history = [], imagePath = null) {
   const client = await getOpenAIClient();
 
   for (let i = 0; i < MAX_RETRIES; i++) {
     try {
-      let messageContent = message;
-      let messages = [];
+      // Initialize messages array with system message
+      let messages = [
+        { 
+          role: 'system',
+          content: 'You are a helpful assistant that provides accurate, concise, and thoughtful responses.'
+        }
+      ];
+
+      // Add conversation history if provided
+      if (history && history.length > 0) {
+        console.log(`Adding ${history.length} messages from conversation history`);
+        messages = messages.concat(history.map(item => ({
+          role: item.role,
+          content: item.content
+        })));
+      }
 
       // Handle image if present
       if (imagePath) {
         console.log(`Processing image for OpenAI: ${imagePath}`);
-        // Only GPT-4 Vision model supports image input
-        if (model.includes('gpt-4') && !model.includes('gpt-4o')) {
+        // Only GPT-4 Vision models support image input
+        if (model.includes('gpt-4') || model.includes('gpt-4o')) {
           try {
             // Read and convert image to base64
             const base64Image = await imageToBase64(imagePath);
 
-            // Format message with image for GPT-4 Vision
-            messages = [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: message },
-                  {
-                    type: 'image_url',
-                    image_url: {
-                      url: `data:image/jpeg;base64,${base64Image}`
-                    }
+            // Format message with image for vision-capable models
+            messages.push({
+              role: 'user',
+              content: [
+                { type: 'text', text: message || 'Please analyze this image.' },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/jpeg;base64,${base64Image}`
                   }
-                ]
-              }
-            ];
+                }
+              ]
+            });
             console.log('Successfully prepared image for OpenAI analysis');
           } catch (imageError) {
             console.error('Error processing image for OpenAI:', imageError);
             // Fall back to text-only if image processing fails
-            messages = [{
+            messages.push({
               role: 'user',
               content: `${message} (Note: I tried to share an image with you, but there was an error processing it)`
-            }];
+            });
           }
         } else {
           // For non-vision models, just mention the image in the text
-          messages = [{
+          messages.push({
             role: 'user',
             content: `${message} (Note: The user uploaded an image, but I cannot view it with my current configuration. Please use GPT-4 Vision for image analysis.)`
-          }];
+          });
         }
       } else {
-        // Standard text message
-        messages = [{ role: 'user', content: message }];
+        // Standard text message (no image)
+        messages.push({ role: 'user', content: message });
       }
 
+      console.log(`Sending request to OpenAI with model: ${model} and ${messages.length} messages`);
       const response = await client.chat.completions.create({
         model: model,
         messages: messages,
@@ -230,7 +243,7 @@ async function sendRequestToOpenAI(model, message, imagePath = null) {
   }
 }
 
-async function sendRequestToAnthropic(model, message, imagePath = null) {
+async function sendRequestToAnthropic(model, message, history = [], imagePath = null) {
   const client = await getAnthropicClient();
 
   // Map simplified model names to the full Anthropic model IDs
@@ -245,6 +258,18 @@ async function sendRequestToAnthropic(model, message, imagePath = null) {
 
   for (let i = 0; i < MAX_RETRIES; i++) {
     try {
+      // Initialize messages array
+      let messages = [];
+
+      // Add conversation history if provided
+      if (history && history.length > 0) {
+        console.log(`Adding ${history.length} messages from conversation history`);
+        messages = history.map(item => ({
+          role: item.role,
+          content: item.content
+        }));
+      }
+
       let messageContent = [];
 
       // Handle image for Claude 3 models (which support images)
@@ -256,7 +281,7 @@ async function sendRequestToAnthropic(model, message, imagePath = null) {
 
           // Format content with image for Claude
           messageContent = [
-            { type: 'text', text: message },
+            { type: 'text', text: message || 'Please analyze this image.' },
             {
               type: 'image',
               source: {
@@ -286,12 +311,16 @@ async function sendRequestToAnthropic(model, message, imagePath = null) {
         messageContent = [{ type: 'text', text: message }];
       }
 
-      console.log(`Sending request to Anthropic with model: ${fullModelName} (mapped from ${model})`);
+      // Add current user message to history
+      messages.push({ role: 'user', content: messageContent });
+
+      console.log(`Sending request to Anthropic with model: ${fullModelName} (mapped from ${model}) and ${messages.length} messages`);
 
       const response = await client.messages.create({
         model: fullModelName,
-        messages: [{ role: 'user', content: messageContent }],
+        messages: messages,
         max_tokens: 1024,
+        system: 'You are a helpful assistant that provides accurate, concise, and thoughtful responses.'
       });
 
       console.log(`Received response from Anthropic: ${JSON.stringify(response.content)}`);
@@ -305,14 +334,19 @@ async function sendRequestToAnthropic(model, message, imagePath = null) {
 }
 
 async function sendLLMRequest(provider, model, message, imagePath = null) {
+  return sendLLMRequestWithHistory(provider, model, message, [], imagePath);
+}
+
+async function sendLLMRequestWithHistory(provider, model, message, history = [], imagePath = null) {
   console.log(`Sending LLM request to ${provider} with model ${model}${imagePath ? ' including image analysis' : ''}`);
+  console.log(`Conversation history contains ${history.length} messages`);
 
   try {
     switch (provider.toLowerCase()) {
       case 'openai':
-        return await sendRequestToOpenAI(model, message, imagePath);
+        return await sendRequestToOpenAI(model, message, history, imagePath);
       case 'anthropic':
-        return await sendRequestToAnthropic(model, message, imagePath);
+        return await sendRequestToAnthropic(model, message, history, imagePath);
       default:
         throw new Error(`Unsupported LLM provider: ${provider}`);
     }
@@ -334,5 +368,6 @@ function invalidateClients() {
 
 module.exports = {
   sendLLMRequest,
+  sendLLMRequestWithHistory,
   invalidateClients
 };

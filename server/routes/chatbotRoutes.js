@@ -68,7 +68,7 @@ router.get('/:id', requireUser, requireSubscription, async (req, res) => {
 router.post('/', requireUser, requireSubscription, async (req, res) => {
   try {
     console.log('Creating new chatbot');
-    const { name, model, provider, description } = req.body;
+    const { name, model, provider, description, historyEnabled, historyLimit } = req.body;
 
     if (!name || !model || !provider) {
       console.log('Missing required fields for chatbot creation');
@@ -103,7 +103,9 @@ router.post('/', requireUser, requireSubscription, async (req, res) => {
         provider,
         description: description || '',
         organizationId: targetOrgId,
-        createdBy: req.user._id
+        createdBy: req.user._id,
+        historyEnabled: historyEnabled !== undefined ? historyEnabled : true,
+        historyLimit: historyLimit !== undefined ? historyLimit : 10
       };
 
       const chatbot = await ChatbotService.create(chatbotData);
@@ -127,7 +129,9 @@ router.post('/', requireUser, requireSubscription, async (req, res) => {
       provider,
       description: description || '',
       organizationId: req.user.organizationId,
-      createdBy: req.user._id
+      createdBy: req.user._id,
+      historyEnabled: historyEnabled !== undefined ? historyEnabled : true,
+      historyLimit: historyLimit !== undefined ? historyLimit : 10
     };
 
     console.log(`Creating chatbot "${name}" for organization ${req.user.organizationId}`);
@@ -151,7 +155,7 @@ router.post('/', requireUser, requireSubscription, async (req, res) => {
 router.put('/:id', requireUser, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, model, provider } = req.body;
+    const { name, description, model, provider, historyEnabled, historyLimit } = req.body;
     const userId = req.user._id;
 
     // Validate required fields
@@ -168,7 +172,9 @@ router.put('/:id', requireUser, async (req, res) => {
       description,
       model,
       provider,
-      userId
+      userId,
+      historyEnabled,
+      historyLimit
     });
 
     res.json({
@@ -320,13 +326,26 @@ router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage,
       console.log(`Image saved at ${imagePath}`);
     }
 
-    // Process message
+    // Process message with conversation history
     console.log(`Sending to MessageService.processMessage with chatbot model: ${chatbot.model}, provider: ${chatbot.provider}`);
+    
+    // Get conversation history if enabled
+    let conversationHistory = [];
+    if (chatbot.historyEnabled !== false) {
+      const historyLimit = chatbot.historyLimit || 10; // Default to 10 if not specified
+      console.log(`Fetching conversation history with limit: ${historyLimit}`);
+      conversationHistory = await MessageService.getConversationHistory(chatbot._id, historyLimit);
+      console.log(`Retrieved ${conversationHistory.length} messages for conversation history`);
+    } else {
+      console.log('Conversation history is disabled for this chatbot');
+    }
+
     const response = await MessageService.processMessage(
       chatbot,
       message || '',
       userId,
-      imagePath
+      imagePath,
+      conversationHistory
     );
 
     console.log(`Successfully processed message, response ID: ${response._id}`);
@@ -363,7 +382,7 @@ router.put('/:id/settings', requireUser, requireSubscription, async (req, res) =
       return res.status(403).json({ error: 'You do not have permission to update this chatbot' });
     }
 
-    const { provider, model } = req.body;
+    const { provider, model, historyEnabled, historyLimit } = req.body;
 
     if (!provider || !model) {
       return res.status(400).json({ error: 'Provider and model are required' });
@@ -372,6 +391,22 @@ router.put('/:id/settings', requireUser, requireSubscription, async (req, res) =
     // Update the chatbot with new settings
     chatbot.provider = provider.toLowerCase();
     chatbot.model = model;
+    
+    // Update history settings if provided
+    if (historyEnabled !== undefined) {
+      chatbot.historyEnabled = historyEnabled;
+      console.log(`Setting conversation history to: ${historyEnabled ? 'enabled' : 'disabled'}`);
+    }
+    
+    if (historyLimit !== undefined) {
+      // Validate history limit
+      if (historyLimit < 0 || historyLimit > 50) {
+        return res.status(400).json({ error: 'History limit must be between 0 and 50' });
+      }
+      chatbot.historyLimit = historyLimit;
+      console.log(`Setting conversation history limit to: ${historyLimit}`);
+    }
+    
     await chatbot.save();
 
     console.log(`Successfully updated settings for chatbot: ${chatbot.name}`);

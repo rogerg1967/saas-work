@@ -41,6 +41,42 @@ class MessageService {
   }
 
   /**
+   * Get recent conversation history for a chatbot
+   * @param {string} chatbotId - The chatbot ID
+   * @param {number} limit - Maximum number of messages to retrieve (default: 10)
+   * @returns {Promise<Array>} List of recent messages
+   */
+  static async getConversationHistory(chatbotId, limit = 10) {
+    try {
+      console.log(`Fetching conversation history for chatbot: ${chatbotId}, limit: ${limit}`);
+      const messages = await Message.find({ chatbotId })
+        .sort({ timestamp: -1 })
+        .limit(limit)
+        .sort({ timestamp: 1 });
+
+      console.log(`Retrieved ${messages.length} messages for conversation history`);
+      return messages;
+    } catch (error) {
+      console.error(`Error fetching conversation history for chatbot ${chatbotId}: ${error.message}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Format conversation history for LLM context
+   * @param {Array} messages - List of message objects
+   * @returns {Array} Formatted messages for LLM
+   */
+  static formatConversationHistoryForLLM(messages) {
+    return messages.map(message => ({
+      role: message.role,
+      content: message.content,
+      // Include image reference if it exists
+      ...(message.image && { image: message.image })
+    }));
+  }
+
+  /**
    * Save an image and return the path
    * @param {Object} file - The uploaded file
    * @returns {Promise<string>} The image path
@@ -106,12 +142,22 @@ class MessageService {
         console.log(`Using default prompt for image-only message: "${prompt}"`);
       }
 
-      // Process with LLM
-      console.log(`Sending request to LLM service with image: ${imagePath ? 'Yes' : 'No'}`);
-      const assistantResponse = await LLMService.sendLLMRequest(
+      // Get conversation history
+      const historyLimit = chatbot.historyLimit || 10; // Default to 10 if not specified
+      console.log(`Fetching conversation history with limit: ${historyLimit}`);
+      const conversationHistory = await this.getConversationHistory(chatbot._id, historyLimit);
+
+      // Format history for LLM
+      const formattedHistory = this.formatConversationHistoryForLLM(conversationHistory);
+      console.log(`Formatted ${formattedHistory.length} messages for conversation history`);
+
+      // Process with LLM including conversation history
+      console.log(`Sending request to LLM service with conversation history and image: ${imagePath ? 'Yes' : 'No'}`);
+      const assistantResponse = await LLMService.sendLLMRequestWithHistory(
         chatbot.provider,
         chatbot.model,
         prompt,
+        formattedHistory,
         imagePath  // Pass the image path to LLM service
       );
 

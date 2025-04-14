@@ -1,5 +1,20 @@
 import api from './api';
 
+// Description: Get a chatbot by ID
+// Endpoint: GET /api/chatbots/:id
+// Request: {}
+// Response: { chatbot: { _id: string, name: string, provider: string, model: string, historyEnabled: boolean, historyLimit: number, ... } }
+export const getChatbot = async (chatbotId: string) => {
+  try {
+    const response = await api.get(`/api/chatbots/${chatbotId}`);
+    console.log('Successfully fetched chatbot details');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching chatbot:', error);
+    throw new Error(error?.response?.data?.error || error.message);
+  }
+};
+
 // Description: Get available chatbots
 // Endpoint: GET /api/chatbots
 // Request: {}
@@ -94,11 +109,11 @@ export const getOrganizationsForAdmin = async () => {
 
 // Description: Update chatbot settings
 // Endpoint: PUT /api/chatbots/:id/settings
-// Request: { provider: string, model: string }
+// Request: { provider?: string, model?: string, historyEnabled?: boolean, historyLimit?: number }
 // Response: { success: boolean, chatbot: { _id: string, name: string, ... } }
 export const updateChatbotSettings = async (
   chatbotId: string,
-  settings: { provider: string; model: string }
+  settings: { provider?: string; model?: string; historyEnabled?: boolean; historyLimit?: number }
 ) => {
   try {
     const response = await api.put(`/api/chatbots/${chatbotId}/settings`, settings);
@@ -106,21 +121,6 @@ export const updateChatbotSettings = async (
     return response.data;
   } catch (error) {
     console.error('Error updating chatbot settings:', error);
-    throw new Error(error?.response?.data?.error || error.message);
-  }
-};
-
-// Description: Get a specific chatbot
-// Endpoint: GET /api/chatbots/:id
-// Request: {}
-// Response: { chatbot: { _id: string, name: string, provider: string, model: string, ... } }
-export const getChatbot = async (chatbotId: string) => {
-  try {
-    const response = await api.get(`/api/chatbots/${chatbotId}`);
-    console.log('Successfully fetched chatbot details');
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching chatbot:', error);
     throw new Error(error?.response?.data?.error || error.message);
   }
 };

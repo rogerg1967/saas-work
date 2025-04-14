@@ -31,6 +31,16 @@ const chatbotSchema = new Schema({
     ref: 'User',
     required: [true, 'Creator is required']
   },
+  historyLimit: {
+    type: Number,
+    default: 10, // Default to 10 messages of history
+    min: 0,
+    max: 50 // Reasonable limit to avoid performance issues
+  },
+  historyEnabled: {
+    type: Boolean,
+    default: true // Enable history by default
+  },
   createdAt: {
     type: Date,
     default: Date.now
