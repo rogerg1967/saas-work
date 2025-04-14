@@ -1,174 +1,200 @@
 const express = require('express');
 const router = express.Router();
-const ThreadService = require('../services/threadService');
+const ConversationThreadService = require('../services/conversationThreadService');
 const MessageService = require('../services/messageService');
-const ChatbotService = require('../services/chatbotService');
 const { requireUser } = require('./middleware/auth');
 const { requireSubscription } = require('./middleware/subscriptionCheck');
 
 // Get all threads for a chatbot
-router.get('/chatbot/:chatbotId', requireUser, requireSubscription, async (req, res) => {
+router.get('/chatbot/:chatbotId/threads', requireUser, requireSubscription, async (req, res) => {
   try {
     const { chatbotId } = req.params;
     const userId = req.user._id;
 
     console.log(`Fetching threads for chatbot: ${chatbotId} and user: ${userId}`);
+    const threads = await ConversationThreadService.getByChatbotAndUser(chatbotId, userId);
 
-    // Check if chatbot exists and user has access
-    const chatbot = await ChatbotService.getById(chatbotId);
-    if (!chatbot) {
-      console.log(`Chatbot with ID ${chatbotId} not found`);
-      return res.status(404).json({ error: 'Chatbot not found' });
-    }
-
-    const hasAccess = await ChatbotService.userHasAccess(userId, chatbot);
-    if (!hasAccess) {
-      console.warn(`User ${userId} attempted to access threads for chatbot ${chatbotId} without permission`);
-      return res.status(403).json({ error: 'You do not have permission to access this chatbot' });
-    }
-
-    const threads = await ThreadService.getByChatbot(chatbotId, userId);
-    console.log(`Found ${threads.length} threads for chatbot ${chatbotId}`);
-
-    res.json({ success: true, threads });
+    res.json({
+      success: true,
+      threads: threads.map(thread => ({
+        id: thread._id,
+        name: thread.name,
+        isActive: thread.isActive,
+        createdAt: thread.createdAt,
+        updatedAt: thread.updatedAt,
+        lastMessageAt: thread.lastMessageAt
+      }))
+    });
   } catch (error) {
     console.error(`Error fetching threads: ${error.message}`, error);
-    res.status(500).json({ error: `Failed to fetch threads: ${error.message}` });
-  }
-});
-
-// Get a specific thread
-router.get('/:id', requireUser, requireSubscription, async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log(`Fetching thread with ID: ${id}`);
-
-    const thread = await ThreadService.getById(id);
-    if (!thread) {
-      console.log(`Thread with ID ${id} not found`);
-      return res.status(404).json({ error: 'Thread not found' });
-    }
-
-    // Check if user has access to this thread
-    const hasAccess = await ThreadService.userHasAccess(req.user._id, thread);
-    if (!hasAccess) {
-      console.warn(`User ${req.user._id} attempted to access thread ${id} without permission`);
-      return res.status(403).json({ error: 'You do not have permission to access this thread' });
-    }
-
-    res.json({ success: true, thread });
-  } catch (error) {
-    console.error(`Error fetching thread: ${error.message}`, error);
-    res.status(500).json({ error: `Failed to fetch thread: ${error.message}` });
+    res.status(500).json({
+      success: false,
+      error: `Failed to fetch threads: ${error.message}`
+    });
   }
 });
 
 // Create a new thread
-router.post('/', requireUser, requireSubscription, async (req, res) => {
+router.post('/chatbot/:chatbotId/threads', requireUser, requireSubscription, async (req, res) => {
   try {
-    const { chatbotId, name } = req.body;
+    const { chatbotId } = req.params;
+    const { name } = req.body;
     const userId = req.user._id;
 
-    console.log(`Creating new thread for chatbot: ${chatbotId}`);
-
-    if (!chatbotId || !name) {
-      console.log('Missing required fields for thread creation');
-      return res.status(400).json({ error: 'Chatbot ID and name are required' });
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        error: 'Thread name is required'
+      });
     }
 
-    // Check if chatbot exists and user has access
-    const chatbot = await ChatbotService.getById(chatbotId);
-    if (!chatbot) {
-      console.log(`Chatbot with ID ${chatbotId} not found`);
-      return res.status(404).json({ error: 'Chatbot not found' });
-    }
+    console.log(`Creating new thread for chatbot: ${chatbotId}, user: ${userId}, name: ${name}`);
 
-    const hasAccess = await ChatbotService.userHasAccess(userId, chatbot);
-    if (!hasAccess) {
-      console.warn(`User ${userId} attempted to create thread for chatbot ${chatbotId} without permission`);
-      return res.status(403).json({ error: 'You do not have permission to access this chatbot' });
-    }
-
-    const threadData = {
-      name,
+    const thread = await ConversationThreadService.create({
       chatbotId,
       userId,
-    };
-
-    const thread = await ThreadService.create(threadData);
-    console.log(`Successfully created thread with ID: ${thread._id}`);
+      name,
+      isActive: true
+    });
 
     res.status(201).json({
       success: true,
-      thread
+      thread: {
+        id: thread._id,
+        name: thread.name,
+        isActive: thread.isActive,
+        createdAt: thread.createdAt,
+        updatedAt: thread.updatedAt,
+        lastMessageAt: thread.lastMessageAt
+      }
     });
   } catch (error) {
     console.error(`Error creating thread: ${error.message}`, error);
-    res.status(500).json({ error: `Failed to create thread: ${error.message}` });
+    res.status(500).json({
+      success: false,
+      error: `Failed to create thread: ${error.message}`
+    });
+  }
+});
+
+// Get a specific thread
+router.get('/threads/:threadId', requireUser, requireSubscription, async (req, res) => {
+  try {
+    const { threadId } = req.params;
+
+    console.log(`Fetching thread with ID: ${threadId}`);
+    const thread = await ConversationThreadService.getById(threadId);
+
+    if (!thread) {
+      return res.status(404).json({
+        success: false,
+        error: 'Thread not found'
+      });
+    }
+
+    // Check if user has access to this thread
+    if (thread.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to access this thread'
+      });
+    }
+
+    res.json({
+      success: true,
+      thread: {
+        id: thread._id,
+        name: thread.name,
+        chatbotId: thread.chatbotId,
+        isActive: thread.isActive,
+        createdAt: thread.createdAt,
+        updatedAt: thread.updatedAt,
+        lastMessageAt: thread.lastMessageAt
+      }
+    });
+  } catch (error) {
+    console.error(`Error fetching thread: ${error.message}`, error);
+    res.status(500).json({
+      success: false,
+      error: `Failed to fetch thread: ${error.message}`
+    });
   }
 });
 
 // Update a thread
-router.put('/:id', requireUser, requireSubscription, async (req, res) => {
+router.put('/threads/:threadId', requireUser, requireSubscription, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { name } = req.body;
+    const { threadId } = req.params;
+    const { name, isActive } = req.body;
 
-    console.log(`Updating thread with ID: ${id}`);
+    console.log(`Updating thread with ID: ${threadId}`);
+    const thread = await ConversationThreadService.getById(threadId);
 
-    if (!name) {
-      console.log('Missing required fields for thread update');
-      return res.status(400).json({ error: 'Name is required' });
-    }
-
-    const thread = await ThreadService.getById(id);
     if (!thread) {
-      console.log(`Thread with ID ${id} not found`);
-      return res.status(404).json({ error: 'Thread not found' });
+      return res.status(404).json({
+        success: false,
+        error: 'Thread not found'
+      });
     }
 
     // Check if user has access to this thread
-    const hasAccess = await ThreadService.userHasAccess(req.user._id, thread);
-    if (!hasAccess) {
-      console.warn(`User ${req.user._id} attempted to update thread ${id} without permission`);
-      return res.status(403).json({ error: 'You do not have permission to update this thread' });
+    if (thread.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to update this thread'
+      });
     }
 
-    const updatedThread = await ThreadService.update(id, { name });
-    console.log(`Successfully updated thread: ${updatedThread.name}`);
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    const updatedThread = await ConversationThreadService.update(threadId, updateData);
 
     res.json({
       success: true,
-      thread: updatedThread
+      thread: {
+        id: updatedThread._id,
+        name: updatedThread.name,
+        isActive: updatedThread.isActive,
+        createdAt: updatedThread.createdAt,
+        updatedAt: updatedThread.updatedAt,
+        lastMessageAt: updatedThread.lastMessageAt
+      }
     });
   } catch (error) {
     console.error(`Error updating thread: ${error.message}`, error);
-    res.status(500).json({ error: `Failed to update thread: ${error.message}` });
+    res.status(500).json({
+      success: false,
+      error: `Failed to update thread: ${error.message}`
+    });
   }
 });
 
 // Delete a thread
-router.delete('/:id', requireUser, requireSubscription, async (req, res) => {
+router.delete('/threads/:threadId', requireUser, requireSubscription, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { threadId } = req.params;
 
-    console.log(`Deleting thread with ID: ${id}`);
+    console.log(`Deleting thread with ID: ${threadId}`);
+    const thread = await ConversationThreadService.getById(threadId);
 
-    const thread = await ThreadService.getById(id);
     if (!thread) {
-      console.log(`Thread with ID ${id} not found`);
-      return res.status(404).json({ error: 'Thread not found' });
+      return res.status(404).json({
+        success: false,
+        error: 'Thread not found'
+      });
     }
 
     // Check if user has access to this thread
-    const hasAccess = await ThreadService.userHasAccess(req.user._id, thread);
-    if (!hasAccess) {
-      console.warn(`User ${req.user._id} attempted to delete thread ${id} without permission`);
-      return res.status(403).json({ error: 'You do not have permission to delete this thread' });
+    if (thread.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to delete this thread'
+      });
     }
 
-    await ThreadService.delete(id);
-    console.log(`Successfully deleted thread with ID: ${id}`);
+    await ConversationThreadService.delete(threadId);
 
     res.json({
       success: true,
@@ -176,31 +202,37 @@ router.delete('/:id', requireUser, requireSubscription, async (req, res) => {
     });
   } catch (error) {
     console.error(`Error deleting thread: ${error.message}`, error);
-    res.status(500).json({ error: `Failed to delete thread: ${error.message}` });
+    res.status(500).json({
+      success: false,
+      error: `Failed to delete thread: ${error.message}`
+    });
   }
 });
 
 // Get messages for a thread
-router.get('/:id/messages', requireUser, requireSubscription, async (req, res) => {
+router.get('/threads/:threadId/messages', requireUser, requireSubscription, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { threadId } = req.params;
 
-    console.log(`Fetching messages for thread: ${id}`);
+    console.log(`Fetching messages for thread: ${threadId}`);
+    const thread = await ConversationThreadService.getById(threadId);
 
-    const thread = await ThreadService.getById(id);
     if (!thread) {
-      console.log(`Thread with ID ${id} not found`);
-      return res.status(404).json({ error: 'Thread not found' });
+      return res.status(404).json({
+        success: false,
+        error: 'Thread not found'
+      });
     }
 
     // Check if user has access to this thread
-    const hasAccess = await ThreadService.userHasAccess(req.user._id, thread);
-    if (!hasAccess) {
-      console.warn(`User ${req.user._id} attempted to access messages for thread ${id} without permission`);
-      return res.status(403).json({ error: 'You do not have permission to access this thread' });
+    if (thread.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to access this thread'
+      });
     }
 
-    const messages = await MessageService.getByThread(id);
+    const messages = await MessageService.getByThread(thread.chatbotId, threadId);
 
     // Transform to expected format
     const formattedMessages = messages.map(msg => ({
@@ -211,15 +243,16 @@ router.get('/:id/messages', requireUser, requireSubscription, async (req, res) =
       image: msg.image
     }));
 
-    console.log(`Successfully retrieved ${formattedMessages.length} messages for thread: ${thread.name}`);
-
     res.json({
       success: true,
       messages: formattedMessages
     });
   } catch (error) {
     console.error(`Error fetching messages: ${error.message}`, error);
-    res.status(500).json({ error: `Failed to fetch messages: ${error.message}` });
+    res.status(500).json({
+      success: false,
+      error: `Failed to fetch messages: ${error.message}`
+    });
   }
 });
 

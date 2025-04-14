@@ -2,9 +2,9 @@ import api from './api';
 
 // Description: Send message to chatbot
 // Endpoint: POST /api/chatbots/:id/message
-// Request: { message: string, threadId: string, image?: File }
+// Request: { message: string, image?: File }
 // Response: { id: string, role: 'user' | 'assistant', content: string, timestamp: string }
-export const sendMessage = async (chatbotId: string, message: string, threadId: string, image?: File, model?: string) => {
+export const sendMessage = async (chatbotId: string, message: string, image?: File, model?: string) => {
   try {
     const formData = new FormData();
 
@@ -12,16 +12,8 @@ export const sendMessage = async (chatbotId: string, message: string, threadId: 
       formData.append('message', message);
     }
 
-    if (threadId) {
-      formData.append('threadId', threadId);
-    }
-
     if (image) {
       formData.append('image', image);
-    }
-
-    if (model) {
-      formData.append('model', model);
     }
 
     const response = await api.post(`/api/chatbots/${chatbotId}/message`, formData, {

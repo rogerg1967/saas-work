@@ -17,7 +17,6 @@ const adminRoutes = require('./routes/adminRoutes');
 const llmRoutes = require('./routes/llmRoutes');
 const activeUserRoutes = require('./routes/activeUserRoutes');
 const industryRoutes = require('./routes/industryRoutes');
-const threadRoutes = require('./routes/threadRoutes');
 const { connectDB } = require("./config/database");
 const cors = require("cors");
 
@@ -84,8 +83,6 @@ app.use('/api/llm', llmRoutes);
 app.use('/api/active-users', activeUserRoutes);
 // Industry Routes
 app.use('/api/industries', industryRoutes);
-// Thread Routes
-app.use('/api/threads', threadRoutes);
 
 // If no routes handled the request, it's a 404
 app.use((req, res, next) => {

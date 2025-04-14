@@ -1,9 +1,9 @@
 const Message = require('../models/Message');
-const ThreadService = require('./threadService');
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const LLMService = require('./llmService');
+const ConversationThreadService = require('./conversationThreadService');
 
 class MessageService {
   /**
@@ -13,14 +13,12 @@ class MessageService {
    */
   static async create(messageData) {
     try {
-      console.log(`Creating new message for thread: ${messageData.threadId}`);
+      console.log(`Creating new message for chatbot: ${messageData.chatbotId}, thread: ${messageData.threadId}`);
       const message = new Message(messageData);
       await message.save();
 
-      // Update the thread's last message info
-      if (messageData.role === 'user' || messageData.role === 'assistant') {
-        await ThreadService.updateLastMessage(messageData.threadId, messageData.content);
-      }
+      // Update the last message time for the thread
+      await ConversationThreadService.updateLastMessageTime(messageData.threadId);
 
       console.log(`Successfully created message with ID: ${message._id}`);
       return message;
@@ -31,49 +29,34 @@ class MessageService {
   }
 
   /**
-   * Get messages for a thread
+   * Get messages for a chatbot thread
+   * @param {string} chatbotId - The chatbot ID
    * @param {string} threadId - The thread ID
    * @returns {Promise<Array>} List of messages
    */
-  static async getByThread(threadId) {
+  static async getByThread(chatbotId, threadId) {
     try {
-      console.log(`Fetching messages for thread: ${threadId}`);
-      const messages = await Message.find({ threadId }).sort({ timestamp: 1 });
+      console.log(`Fetching messages for chatbot: ${chatbotId}, thread: ${threadId}`);
+      const messages = await Message.find({ chatbotId, threadId }).sort({ timestamp: 1 });
       console.log(`Found ${messages.length} messages for thread ${threadId}`);
       return messages;
     } catch (error) {
-      console.error(`Error fetching messages for thread ${threadId}: ${error.message}`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get messages for a chatbot (legacy support)
-   * @param {string} chatbotId - The chatbot ID
-   * @returns {Promise<Array>} List of messages
-   */
-  static async getByChatbot(chatbotId) {
-    try {
-      console.log(`Fetching messages for chatbot: ${chatbotId}`);
-      const messages = await Message.find({ chatbotId }).sort({ timestamp: 1 });
-      console.log(`Found ${messages.length} messages for chatbot ${chatbotId}`);
-      return messages;
-    } catch (error) {
-      console.error(`Error fetching messages for chatbot ${chatbotId}: ${error.message}`, error);
+      console.error(`Error fetching messages: ${error.message}`, error);
       throw error;
     }
   }
 
   /**
    * Get recent conversation history for a thread
+   * @param {string} chatbotId - The chatbot ID
    * @param {string} threadId - The thread ID
    * @param {number} limit - Maximum number of messages to retrieve (default: 10)
    * @returns {Promise<Array>} List of recent messages
    */
-  static async getConversationHistory(threadId, limit = 10) {
+  static async getConversationHistory(chatbotId, threadId, limit = 10) {
     try {
-      console.log(`Fetching conversation history for thread: ${threadId}, limit: ${limit}`);
-      const messages = await Message.find({ threadId })
+      console.log(`Fetching conversation history for chatbot: ${chatbotId}, thread: ${threadId}, limit: ${limit}`);
+      const messages = await Message.find({ chatbotId, threadId })
         .sort({ timestamp: -1 })
         .limit(limit)
         .sort({ timestamp: 1 });
@@ -81,7 +64,7 @@ class MessageService {
       console.log(`Retrieved ${messages.length} messages for conversation history`);
       return messages;
     } catch (error) {
-      console.error(`Error fetching conversation history for thread ${threadId}: ${error.message}`, error);
+      console.error(`Error fetching conversation history: ${error.message}`, error);
       throw error;
     }
   }
@@ -134,7 +117,7 @@ class MessageService {
   /**
    * Process a message with an LLM and save response
    * @param {Object} chatbot - The chatbot data
-   * @param {string} threadId - The thread ID
+   * @param {string} threadId - The conversation thread ID
    * @param {string} content - The message content
    * @param {string} userId - The user ID
    * @param {string} imagePath - Optional image path
@@ -143,7 +126,7 @@ class MessageService {
    */
   static async processMessage(chatbot, threadId, content, userId, imagePath = null, conversationHistory = []) {
     try {
-      console.log(`Processing message for thread with ID: ${threadId}`);
+      console.log(`Processing message for chatbot with ID: ${chatbot._id}, thread: ${threadId}`);
       console.log(`Image path: ${imagePath ? imagePath : 'No image'}`);
       console.log(`Using provider: ${chatbot.provider}, model: ${chatbot.model}`);
       console.log(`Conversation history: ${conversationHistory.length} messages`);
