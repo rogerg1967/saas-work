@@ -1,3 +1,4 @@
+```
 const axios = require('axios');
 const dotenv = require('dotenv');
 const OpenAI = require('openai');
@@ -144,8 +145,8 @@ async function imageToBase64(imagePath) {
       // Construct the local path to the file in the uploads directory
       const localPath = path.join(__dirname, '..', 'uploads', filename);
 
-      console.log(`Image path is a URL. Extracted filename: ${filename}`);
-      console.log(`Looking for file at local path: ${localPath}`);
+      console.log("Image path is a URL. Extracted filename:", filename);
+      console.log("Looking for file at local path:", localPath);
 
       // Check if file exists at the local path
       if (!fs.existsSync(localPath)) {
@@ -163,7 +164,7 @@ async function imageToBase64(imagePath) {
 
       return base64Image;
     } else {
-      // Handle relative paths by making them absolute (original code)
+      // Handle relative paths by making them absolute
       const absolutePath = path.resolve(
         imagePath.startsWith('/') ? path.join(__dirname, '..', imagePath) : path.join(__dirname, '../..', imagePath)
       );
@@ -188,6 +189,80 @@ async function imageToBase64(imagePath) {
     }
   } catch (error) {
     console.error(`Error converting image to base64: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Extract text content from document files for analysis
+ * @param {string} documentPath - Path to the document file
+ * @returns {Promise<string>} Extracted text content
+ */
+async function extractDocumentContent(documentPath) {
+  try {
+    console.log(`Extracting content from document: ${documentPath}`);
+
+    // Check if file exists
+    if (!fs.existsSync(documentPath)) {
+      console.error(`Document file not found at path: ${documentPath}`);
+      return `[Document file not found: ${path.basename(documentPath)}]`;
+    }
+
+    // Get file extension to determine document type
+    const ext = path.extname(documentPath).toLowerCase();
+    console.log(`Document type detected as: ${ext}`);
+
+    // For text files, read directly
+    if (ext === '.txt') {
+      console.log('Processing as text file');
+      const content = await fs.promises.readFile(documentPath, 'utf8');
+      console.log(`Successfully extracted text content, length: ${content.length} characters`);
+      return content.slice(0, 5000); // Limit content length
+    }
+
+    // For other document types in this MVP version, we read as binary and report file type
+    // In a production environment, specific document parsers would be used
+    console.log(`Processing document with extension: ${ext}`);
+    const fileStats = await fs.promises.stat(documentPath);
+    const fileSizeKB = Math.round(fileStats.size / 1024);
+
+    return `[This is a ${ext.replace('.', '')} document with file size of ${fileSizeKB}KB. The document appears to contain formatted content that requires specialized parsing. In a production environment, a dedicated parser for ${ext} files would extract the full content.]`;
+  } catch (error) {
+    console.error(`Error extracting document content: ${error.message}`, error);
+    return `[Error extracting document content: ${error.message}]`;
+  }
+}
+
+/**
+ * Process a document for LLM analysis
+ * @param {string} documentPath - Path to the document file
+ * @returns {Promise<Object>} Document content and metadata
+ */
+async function processDocument(documentPath) {
+  try {
+    console.log(`Processing document: ${documentPath}`);
+
+    if (!documentPath) {
+      console.error('Document path is null or undefined');
+      throw new Error('Invalid document path');
+    }
+
+    const fileName = path.basename(documentPath);
+    const fileExt = path.extname(documentPath).toLowerCase();
+
+    console.log(`Processing document: ${fileName} (${fileExt})`);
+
+    // Extract document content
+    const content = await extractDocumentContent(documentPath);
+
+    console.log(`Document processing complete for: ${fileName}`);
+    return {
+      fileName,
+      fileType: fileExt.replace('.', ''),
+      content
+    };
+  } catch (error) {
+    console.error(`Error processing document: ${error.message}`, error);
     throw error;
   }
 }
@@ -431,6 +506,310 @@ async function sendRequestToAnthropic(model, message, history = [], imagePath = 
 }
 
 /**
+ * Process a request using OpenAI
+ * @param {string} model - The OpenAI model to use
+ * @param {string} prompt - The user's message
+ * @param {Array} history - Previous conversation history
+ * @param {string} filePath - Path to an uploaded file (optional)
+ * @param {string} fileType - Type of file ('image' or 'document')
+ * @param {Object} settings - LLM settings
+ * @returns {Promise<string>} - The AI's response
+ */
+async function processOpenAIRequest(model, prompt, history, filePath, fileType, settings) {
+  console.log(`Processing OpenAI request with model: ${model}`);
+
+  try {
+    // For OpenAI, we need to handle different file types differently
+    if (filePath) {
+      if (fileType === 'image') {
+        console.log(`Processing image: ${filePath}`);
+        // Check if the model supports image analysis
+        const supportsImages = await modelSupportsVision(model, 'openai');
+        if (!supportsImages) {
+          return `I notice you've uploaded an image, but the current model (${model}) doesn't support image analysis. Please try using a vision-capable model like GPT-4 Vision or GPT-4o.`;
+        }
+
+        try {
+          const openai = await getOpenAIClient();
+
+          // Read and convert image to base64
+          console.log('Converting image to base64');
+          const base64Image = await imageToBase64(filePath);
+          console.log('Image converted successfully');
+
+          // Prepare messages for OpenAI with image
+          const messages = [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant that analyzes images accurately.'
+            },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: prompt || 'Please analyze this image.' },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/jpeg;base64,${base64Image}`
+                  }
+                }
+              ]
+            }
+          ];
+
+          console.log('Sending image analysis request to OpenAI');
+          const response = await openai.chat.completions.create({
+            model: model,
+            messages: messages,
+            max_tokens: 1024,
+          });
+
+          console.log('Received image analysis response from OpenAI');
+          return response.choices[0].message.content;
+        } catch (imageError) {
+          console.error(`Error analyzing image with OpenAI: ${imageError.message}`, imageError);
+          return `I wasn't able to properly analyze the image you uploaded. Error: ${imageError.message}`;
+        }
+      } else if (fileType === 'document') {
+        console.log(`Processing document: ${filePath}`);
+        try {
+          // Process the document
+          const document = await processDocument(filePath);
+          console.log('Document processed, building prompt');
+
+          // For text-based documents, we can include the content in the prompt
+          let documentPrompt = prompt || "Please analyze this document.";
+          documentPrompt += `\n\nDocument Information:\nFilename: ${document.fileName}\nType: ${document.fileType}\n\nContent: ${document.content}\n\nPlease analyze this document and provide insights.`;
+
+          console.log(`Document prompt created, length: ${documentPrompt.length} characters`);
+
+          // Send to OpenAI
+          const openai = await getOpenAIClient();
+          console.log('Sending document analysis request to OpenAI');
+
+          const response = await openai.chat.completions.create({
+            model: model,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a helpful assistant that analyzes documents accurately.'
+              },
+              {
+                role: 'user',
+                content: documentPrompt
+              }
+            ],
+            max_tokens: 1024,
+          });
+
+          console.log('Received document analysis response from OpenAI');
+          return response.choices[0].message.content;
+        } catch (docError) {
+          console.error(`Error analyzing document with OpenAI: ${docError.message}`, docError);
+          return `I wasn't able to properly analyze the document you uploaded. Error: ${docError.message}`;
+        }
+      }
+    }
+
+    // If no file, or unknown file type, just respond to the prompt
+    console.log('Processing text-only request to OpenAI');
+    const openai = await getOpenAIClient();
+
+    // Initialize messages array with system message
+    let messages = [
+      {
+        role: 'system',
+        content: 'You are a helpful assistant that provides accurate, concise, and thoughtful responses.'
+      }
+    ];
+
+    // Add conversation history if provided
+    if (history && history.length > 0) {
+      console.log(`Adding ${history.length} messages from conversation history to OpenAI request`);
+      const formattedHistory = await formatHistoryForOpenAI(history);
+      messages = messages.concat(formattedHistory);
+    }
+
+    // Add the current message
+    messages.push({ role: 'user', content: prompt });
+
+    console.log('Sending text request to OpenAI');
+    const response = await openai.chat.completions.create({
+      model: model,
+      messages: messages,
+      max_tokens: 1024,
+    });
+
+    console.log('Received text response from OpenAI');
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error(`Error in OpenAI request processing: ${error.message}`, error);
+    throw error;
+  }
+}
+
+/**
+ * Process a request using Anthropic
+ * @param {string} model - The Anthropic model to use
+ * @param {string} prompt - The user's message
+ * @param {Array} history - Previous conversation history
+ * @param {string} filePath - Path to an uploaded file (optional)
+ * @param {string} fileType - Type of file ('image' or 'document')
+ * @param {Object} settings - LLM settings
+ * @returns {Promise<string>} - The AI's response
+ */
+async function processAnthropicRequest(model, prompt, history, filePath, fileType, settings) {
+  console.log(`Processing Anthropic request with model: ${model}`);
+
+  try {
+    // Map simplified model names to the full Anthropic model IDs
+    const modelMap = {
+      'claude-3-opus': 'claude-3-opus-20240229',
+      'claude-3-sonnet': 'claude-3-sonnet-20240229',
+      'claude-3-haiku': 'claude-3-haiku-20240307',
+      'claude-2': 'claude-2.1'
+    };
+
+    const fullModelName = modelMap[model] || model;
+    console.log(`Using Anthropic model: ${fullModelName}`);
+
+    const anthropic = await getAnthropicClient();
+
+    // For Anthropic, handle different file types
+    if (filePath) {
+      if (fileType === 'image') {
+        console.log(`Processing image: ${filePath}`);
+        // Check if the model supports image analysis
+        const supportsImages = await modelSupportsVision(model, 'anthropic');
+        if (!supportsImages) {
+          return `I notice you've uploaded an image, but the current model (${model}) doesn't support image analysis. Please try using Claude 3, which has vision capabilities.`;
+        }
+
+        try {
+          // Read and convert image to base64
+          console.log('Converting image to base64');
+          const base64Image = await imageToBase64(filePath);
+          console.log('Image converted successfully');
+
+          // Initialize messages array
+          let messages = [];
+
+          // Add conversation history if provided
+          if (history && history.length > 0) {
+            console.log(`Adding ${history.length} messages from conversation history to Anthropic request`);
+            const formattedHistory = await formatHistoryForAnthropic(history);
+            messages = formattedHistory;
+          }
+
+          // Create message content with image
+          const messageContent = [
+            { type: 'text', text: prompt || 'Please analyze this image.' },
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: 'image/jpeg',
+                data: base64Image
+              }
+            }
+          ];
+
+          // Add current user message with image to messages
+          messages.push({ role: 'user', content: messageContent });
+
+          console.log('Sending image analysis request to Anthropic');
+          const response = await anthropic.messages.create({
+            model: fullModelName,
+            messages: messages,
+            max_tokens: 1024,
+            system: 'You are a helpful assistant that analyzes images accurately.'
+          });
+
+          console.log('Received image analysis response from Anthropic');
+          return response.content[0].text;
+        } catch (imageError) {
+          console.error(`Error analyzing image with Anthropic: ${imageError.message}`, imageError);
+          return `I wasn't able to properly analyze the image you uploaded. Error: ${imageError.message}`;
+        }
+      } else if (fileType === 'document') {
+        console.log(`Processing document: ${filePath}`);
+        try {
+          // Process the document
+          const document = await processDocument(filePath);
+          console.log('Document processed, building prompt');
+
+          // For text-based documents, we can include the content in the prompt
+          let documentPrompt = prompt || "Please analyze this document.";
+          documentPrompt += `\n\nDocument Information:\nFilename: ${document.fileName}\nType: ${document.fileType}\n\nContent: ${document.content}\n\nPlease analyze this document and provide insights.`;
+
+          console.log(`Document prompt created, length: ${documentPrompt.length} characters`);
+
+          // Initialize messages array
+          let messages = [];
+
+          // Add conversation history if provided
+          if (history && history.length > 0) {
+            console.log(`Adding ${history.length} messages from conversation history to Anthropic request`);
+            const formattedHistory = await formatHistoryForAnthropic(history);
+            messages = formattedHistory;
+          }
+
+          // Add current user message with document to messages
+          messages.push({
+            role: 'user',
+            content: [{ type: 'text', text: documentPrompt }]
+          });
+
+          console.log('Sending document analysis request to Anthropic');
+          const response = await anthropic.messages.create({
+            model: fullModelName,
+            messages: messages,
+            max_tokens: 1024,
+            system: 'You are a helpful assistant that analyzes documents accurately.'
+          });
+
+          console.log('Received document analysis response from Anthropic');
+          return response.content[0].text;
+        } catch (docError) {
+          console.error(`Error analyzing document with Anthropic: ${docError.message}`, docError);
+          return `I wasn't able to properly analyze the document you uploaded. Error: ${docError.message}`;
+        }
+      }
+    }
+
+    // If no file, or unknown file type, just respond to the prompt
+    console.log('Processing text-only request to Anthropic');
+
+    // Initialize messages array
+    let messages = [];
+
+    // Add conversation history if provided
+    if (history && history.length > 0) {
+      console.log(`Adding ${history.length} messages from conversation history to Anthropic request`);
+      const formattedHistory = await formatHistoryForAnthropic(history);
+      messages = formattedHistory;
+    }
+
+    // Add the current message
+    messages.push({ role: 'user', content: [{ type: 'text', text: prompt }] });
+
+    console.log('Sending text request to Anthropic');
+    const response = await anthropic.messages.create({
+      model: fullModelName,
+      messages: messages,
+      max_tokens: 1024,
+      system: 'You are a helpful assistant that provides accurate, concise, and thoughtful responses.'
+    });
+
+    console.log('Received text response from Anthropic');
+    return response.content[0].text;
+  } catch (error) {
+    console.error(`Error in Anthropic request processing: ${error.message}`, error);
+    throw error;
+  }
+}
+
+/**
  * Send a request to an LLM with optional file attachment
  * @param {string} provider - The AI provider (e.g., 'openai')
  * @param {string} model - The model to use
@@ -450,239 +829,9 @@ async function sendLLMRequest(provider, model, prompt, history = [], filePath = 
 
   while (retries < maxRetries) {
     try {
-      // Get the LLM settings
-      const LLMSettingsService = require('./llmSettingsService');
-      const settings = await LLMSettingsService.getSettings();
+      // Get settings
+      const settings = await getLLMSettings();
 
-      // Initialize the appropriate client based on the provider
-      let response;
-
+      // Route to appropriate provider
       if (provider.toLowerCase() === 'openai') {
-        response = await processOpenAIRequest(model, prompt, history, filePath, fileType, settings);
-      } else if (provider.toLowerCase() === 'anthropic') {
-        response = await processAnthropicRequest(model, prompt, history, filePath, fileType, settings);
-      } else {
-        throw new Error(`Unsupported provider: ${provider}`);
-      }
-
-      console.log(`Successfully received response from ${provider}`);
-      return response;
-    } catch (error) {
-      retries++;
-      console.error(`Attempt ${retries}/${maxRetries} failed: ${error.message}`);
-
-      if (retries >= maxRetries) {
-        throw new Error(`Failed to get response after ${maxRetries} attempts: ${error.message}`);
-      }
-
-      // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, 1000 * retries));
-    }
-  }
-}
-
-/**
- * Process a request using OpenAI
- * @param {string} model - The OpenAI model to use
- * @param {string} prompt - The user's message
- * @param {Array} history - Previous conversation history
- * @param {string} filePath - Path to an uploaded file (optional)
- * @param {string} fileType - Type of file ('image' or 'document')
- * @param {Object} settings - LLM settings
- * @returns {Promise<string>} - The AI's response
- */
-async function processOpenAIRequest(model, prompt, history, filePath, fileType, settings) {
-  console.log(`Processing OpenAI request with model: ${model}`);
-
-  // For now, we'll mock the OpenAI response
-  // In a real implementation, this would use the OpenAI API client
-
-  // Mock different responses based on file type
-  if (filePath) {
-    if (fileType === 'image') {
-      console.log(`Processing image: ${filePath}`);
-      return mockImageAnalysisResponse(filePath, prompt);
-    } else if (fileType === 'document') {
-      console.log(`Processing document: ${filePath}`);
-      return mockDocumentAnalysisResponse(filePath, prompt);
-    }
-  }
-
-  // If no file, or unknown file type, just respond to the prompt
-  return mockTextResponse(prompt, history);
-}
-
-/**
- * Process a request using Anthropic
- * @param {string} model - The Anthropic model to use
- * @param {string} prompt - The user's message
- * @param {Array} history - Previous conversation history
- * @param {string} filePath - Path to an uploaded file (optional)
- * @param {string} fileType - Type of file ('image' or 'document')
- * @param {Object} settings - LLM settings
- * @returns {Promise<string>} - The AI's response
- */
-async function processAnthropicRequest(model, prompt, history, filePath, fileType, settings) {
-  console.log(`Processing Anthropic request with model: ${model}`);
-
-  // For now, we'll mock the Anthropic response
-  // In a real implementation, this would use the Anthropic API client
-
-  // Mock different responses based on file type
-  if (filePath) {
-    if (fileType === 'image') {
-      console.log(`Processing image: ${filePath}`);
-      return mockImageAnalysisResponse(filePath, prompt);
-    } else if (fileType === 'document') {
-      console.log(`Processing document: ${filePath}`);
-      return mockDocumentAnalysisResponse(filePath, prompt);
-    }
-  }
-
-  // If no file, or unknown file type, just respond to the prompt
-  return mockTextResponse(prompt, history);
-}
-
-/**
- * Mock response for image analysis
- * @param {string} imagePath - Path to the image
- * @param {string} prompt - The user's message
- * @returns {string} - Mocked AI response
- */
-function mockImageAnalysisResponse(imagePath, prompt) {
-  const fileName = imagePath.split('/').pop();
-
-  return `I've analyzed the image you uploaded (${fileName}).
-
-Based on what I can see, this appears to be [description of image content].
-${prompt ? `Regarding your question: "${prompt}", I can tell you that...` : ''}
-
-Is there anything specific about this image you'd like me to explain further?`;
-}
-
-/**
- * Mock response for document analysis
- * @param {string} documentPath - Path to the document
- * @param {string} prompt - The user's message
- * @returns {string} - Mocked AI response
- */
-function mockDocumentAnalysisResponse(documentPath, prompt) {
-  const fileName = documentPath.split('/').pop();
-  const fileExtension = fileName.split('.').pop().toLowerCase();
-
-  let documentType = 'document';
-  switch (fileExtension) {
-    case 'pdf':
-      documentType = 'PDF document';
-      break;
-    case 'doc':
-    case 'docx':
-      documentType = 'Word document';
-      break;
-    case 'txt':
-      documentType = 'text file';
-      break;
-    case 'xls':
-    case 'xlsx':
-      documentType = 'Excel spreadsheet';
-      break;
-    case 'csv':
-      documentType = 'CSV file';
-      break;
-    case 'ppt':
-    case 'pptx':
-      documentType = 'PowerPoint presentation';
-      break;
-  }
-
-  return `I've analyzed the ${documentType} you uploaded (${fileName}).
-
-The document appears to contain information about [mock summary of document content].
-Key points from the document:
-1. [First key point]
-2. [Second key point]
-3. [Third key point]
-
-${prompt ? `Regarding your question: "${prompt}", based on the document content, I can tell you that...` : ''}
-
-Would you like me to focus on any specific part of this document?`;
-}
-
-/**
- * Mock response for text-only prompts
- * @param {string} prompt - The user's message
- * @param {Array} history - Previous conversation history
- * @returns {string} - Mocked AI response
- */
-function mockTextResponse(prompt, history) {
-  // Check if there's any history
-  const hasHistory = history && history.length > 0;
-
-  if (hasHistory) {
-    return `Based on our conversation so far, I understand you're asking about "${prompt}".
-
-Here's my response taking into account our previous exchanges...`;
-  } else {
-    return `Thank you for your message: "${prompt}".
-
-Here's my response...`;
-  }
-}
-
-/**
- * Send a request to an LLM with conversation history
- * @param {string} provider - The LLM provider (e.g., 'openai', 'anthropic')
- * @param {string} model - The model to use
- * @param {string} prompt - The user's prompt
- * @param {Array} history - Conversation history
- * @param {string} imagePath - Optional image path
- * @returns {Promise<string>} The LLM response
- */
-async function sendLLMRequestWithHistory(provider, model, prompt, history = [], imagePath = null) {
-  try {
-    console.log(`Sending LLM request to ${provider} using model ${model}`);
-    console.log(`With conversation history: ${history.length} messages`);
-
-    // Log the first few messages of history for debugging
-    if (history.length > 0) {
-      console.log(`History sample (first ${Math.min(3, history.length)} messages):`);
-      history.slice(0, 3).forEach((msg, i) => {
-        console.log(`[${i}] Role: ${msg.role}, Content: ${typeof msg.content === 'string' ? msg.content.substring(0, 50) + '...' : '[Complex content]'}`);
-      });
-    }
-
-    // Get LLM settings
-    const settings = await getLLMSettings();
-
-    // Send the request to the appropriate provider
-    let response;
-
-    if (provider.toLowerCase() === 'openai') {
-      response = await sendRequestToOpenAI(model, prompt, history, imagePath);
-    } else if (provider.toLowerCase() === 'anthropic') {
-      response = await sendRequestToAnthropic(model, prompt, history, imagePath);
-    } else {
-      throw new Error(`Unsupported provider: ${provider}`);
-    }
-
-    return response;
-  } catch (error) {
-    console.error(`Error sending LLM request with history: ${error.message}`, error);
-    throw error;
-  }
-}
-
-// Function to invalidate cached clients when settings change
-function invalidateClients() {
-  openaiClient = null;
-  anthropicClient = null;
-  cachedSettings = null;
-  lastSettingsFetch = 0;
-  console.log('LLM clients invalidated due to settings change');
-}
-
-module.exports = {
-  sendLLMRequest,
-  sendLLMRequestWithHistory,
-  invalidateClients
-};
+        return await processOpenAIRequest(model, prompt, history, filePath, fileType, settings);

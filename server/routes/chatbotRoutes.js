@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 const { requireUser } = require('./middleware/auth');
 const { requireSubscription } = require('./middleware/subscriptionCheck');
 const { uploadFileMiddleware } = require('./middleware/upload');
-const { sendLLMRequest } = require('../services/llmService');
+const { sendLLMRequest } = require('../services/llm');
 
 // Get all chatbots for the user's organization or all chatbots for admin
 router.get('/', requireUser, requireSubscription, async (req, res) => {

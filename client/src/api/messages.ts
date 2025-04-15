@@ -2,9 +2,15 @@ import api from './api';
 
 // Description: Send a message to a chatbot
 // Endpoint: POST /api/chatbots/:id/message
-// Request: { message: string, threadId?: string, file?: File }
+// Request: { message: string, file?: File, model?: string, threadId: string }
 // Response: { id: string, role: string, content: string, timestamp: string }
-export const sendMessage = async (chatbotId: string, message: string, file?: File, model?: string, threadId?: string) => {
+export const sendMessage = async (
+  chatbotId: string,
+  message: string,
+  file: File | null,
+  model?: string,
+  threadId?: string
+) => {
   try {
     const formData = new FormData();
     formData.append('message', message);
@@ -18,10 +24,8 @@ export const sendMessage = async (chatbotId: string, message: string, file?: Fil
     }
 
     if (file) {
-      // Determine if it's an image or document based on file type
-      const isImage = file.type.startsWith('image/');
-
-      if (isImage) {
+      // Append the file to the correct field based on its type
+      if (file.type.startsWith('image/')) {
         formData.append('image', file);
       } else {
         formData.append('document', file);
@@ -33,6 +37,7 @@ export const sendMessage = async (chatbotId: string, message: string, file?: Fil
         'Content-Type': 'multipart/form-data',
       },
     });
+
     return response.data;
   } catch (error) {
     console.error('Error sending message:', error);

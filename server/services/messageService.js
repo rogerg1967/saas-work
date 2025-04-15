@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const Message = require('../models/Message');
-const { sendLLMRequest } = require('./llmService');
+const { sendLLMRequest } = require('./llm');
 
 class MessageService {
   /**
