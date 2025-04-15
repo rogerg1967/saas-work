@@ -1,320 +1,188 @@
-const mongoose = require('mongoose');
-const Message = require('../models/Message');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+const Message = require('../models/Message');
+const { sendLLMRequest } = require('./llmService');
 
 class MessageService {
   /**
-   * Create a new message
-   * @param {Object} messageData - The message data
-   * @returns {Promise<Object>} The created message
-   */
-  static async create(messageData) {
-    try {
-      const message = new Message(messageData);
-      await message.save();
-      return message;
-    } catch (error) {
-      console.error(`Error creating message: ${error.message}`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get messages by chatbot ID
-   * @param {string} chatbotId - The chatbot ID
-   * @returns {Promise<Array>} The messages for the chatbot
-   */
-  static async getByChatbot(chatbotId) {
-    try {
-      console.log(`Fetching messages for chatbot: ${chatbotId}`);
-      const messages = await Message.find({ chatbotId })
-        .sort({ createdAt: 1 })
-        .lean();
-      return messages;
-    } catch (error) {
-      console.error(`Error getting messages by chatbot: ${error.message}`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get messages by chatbot ID and thread ID
-   * @param {string} chatbotId - The chatbot ID
-   * @param {string} threadId - The thread ID
-   * @returns {Promise<Array>} The messages for the chatbot and thread
-   */
-  static async getByChatbotAndThread(chatbotId, threadId) {
-    try {
-      console.log(`Fetching messages for chatbot: ${chatbotId} and thread: ${threadId}`);
-      const messages = await Message.find({ chatbotId, threadId })
-        .sort({ timestamp: 1 })
-        .lean();
-      return messages;
-    } catch (error) {
-      console.error(`Error getting messages by chatbot and thread: ${error.message}`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get messages by conversation ID
-   * @param {string} conversationId - The conversation ID
-   * @returns {Promise<Array>} The messages for the conversation
-   */
-  static async getByConversation(conversationId) {
-    try {
-      const messages = await Message.find({ conversationId })
-        .sort({ createdAt: 1 })
-        .lean();
-      return messages;
-    } catch (error) {
-      console.error(`Error getting messages by conversation: ${error.message}`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Delete messages by conversation ID
-   * @param {string} conversationId - The conversation ID
-   * @returns {Promise<Object>} The deletion result
-   */
-  static async deleteByConversation(conversationId) {
-    try {
-      const result = await Message.deleteMany({ conversationId });
-      return result;
-    } catch (error) {
-      console.error(`Error deleting messages by conversation: ${error.message}`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Save an uploaded image and return the path
+   * Save an uploaded image to the file system
    * @param {Object} file - The uploaded file object from multer
-   * @returns {Promise<string>} The path to the saved image
+   * @returns {Promise<string>} - The path where the image was saved
    */
   static async saveImage(file) {
     try {
-      if (!file) {
-        console.log('No image file provided');
-        return null;
+      console.log(`Saving file: ${file.originalname}, size: ${file.size}, type: ${file.mimetype}`);
+
+      // If the file was already saved by multer (using diskStorage)
+      if (file.path) {
+        console.log(`File already saved by multer at ${file.path}`);
+        return file.path;
       }
 
-      console.log(`Saving image: ${file.originalname}`);
-
-      // Get the server URL from environment variable or default to localhost:3000
-      const serverURL = process.env.SERVER_URL || 'http://localhost:3000';
-
-      // Check if file has the correct properties
-      if (!file.filename) {
-        console.error('File object is missing filename property:', file);
-
-        // Use the original filename as a fallback
-        const filename = file.originalname ?
-          Date.now() + '-' + file.originalname.replace(/\s+/g, '-') :
-          Date.now() + '-image';
-
-        console.log(`Generated filename: ${filename}`);
-
-        // The file path where multer saved the file
-        const uploadedFilePath = file.path;
-
-        return uploadedFilePath ? `${serverURL}/uploads/${uploadedFilePath.split('uploads\\')[1]}` : null;
+      // Create uploads directory if it doesn't exist
+      const uploadsDir = path.join(__dirname, '..', 'uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        console.log('Creating uploads directory');
+        fs.mkdirSync(uploadsDir, { recursive: true });
       }
 
-      // The file is already saved by multer middleware to the uploads directory
-      // We just need to return the full URL path that can be used to access it
-      const imagePath = `${serverURL}/uploads/${file.filename}`;
+      // Generate a unique filename
+      const fileName = `${uuidv4()}-${file.originalname}`;
+      const filePath = path.join(uploadsDir, fileName);
 
-      console.log(`Image saved at path: ${imagePath}`);
-      return imagePath;
+      // Write the file to disk
+      console.log(`Writing file to ${filePath}`);
+      await fs.promises.writeFile(filePath, file.buffer);
+
+      console.log(`File saved successfully at ${filePath}`);
+      return filePath;
     } catch (error) {
-      console.error(`Error saving image: ${error.message}`, error);
-      throw error;
+      console.error(`Error saving file: ${error.message}`, error);
+      throw new Error(`Failed to save file: ${error.message}`);
     }
   }
 
   /**
-   * Read an image file from the filesystem
-   * @param {string} imagePath - The path to the image
-   * @returns {Promise<Buffer>} The image data
+   * Save an uploaded document to the file system
+   * @param {Object} file - The uploaded file object from multer
+   * @returns {Promise<string>} - The path where the document was saved
    */
-  static async readImage(imagePath) {
+  static async saveDocument(file) {
+    // Currently this uses the same implementation as saveImage
+    // but we can customize it for documents in the future if needed
+    return this.saveImage(file);
+  }
+
+  /**
+   * Get the file type (image or document) based on MIME type
+   * @param {string} mimetype - The MIME type of the file
+   * @returns {string} - Either 'image' or 'document'
+   */
+  static getFileType(mimetype) {
+    if (mimetype.startsWith('image/')) {
+      return 'image';
+    }
+    return 'document';
+  }
+
+  /**
+   * Process uploaded file (either image or document)
+   * @param {Object} file - The uploaded file object from multer
+   * @returns {Promise<Object>} - Object containing the file path and type
+   */
+  static async processFile(file) {
+    if (!file) {
+      console.log('No file to process');
+      return { filePath: null, fileType: null };
+    }
+
+    const fileType = this.getFileType(file.mimetype);
+    console.log(`Processing file as ${fileType}`);
+
+    let filePath;
+    if (fileType === 'image') {
+      filePath = await this.saveImage(file);
+    } else {
+      filePath = await this.saveDocument(file);
+    }
+
+    return { filePath, fileType };
+  }
+
+  /**
+   * Get conversation history for a chatbot and thread
+   * @param {string} chatbotId - The ID of the chatbot
+   * @param {string} threadId - The ID of the conversation thread
+   * @param {number} limit - Maximum number of messages to retrieve
+   * @returns {Promise<Array>} - Array of messages
+   */
+  static async getConversationHistory(chatbotId, threadId, limit = 10) {
     try {
-      // Remove leading slash if present
-      const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
+      console.log(`Retrieving conversation history for chatbot ${chatbotId} and thread ${threadId} with limit ${limit}`);
 
-      // Get the absolute path to the image
-      const absolutePath = path.join(process.cwd(), cleanPath);
-      console.log(`Reading image from absolute path: ${absolutePath}`);
+      // Get messages from the database
+      const messages = await Message.getByChatbotAndThread(chatbotId, threadId, limit);
 
-      // Check if file exists
-      if (!fs.existsSync(absolutePath)) {
-        console.log(`Image file not found at path: ${absolutePath}`);
-        return null;
-      }
+      console.log(`Retrieved ${messages.length} messages for conversation history`);
 
-      // Read the file
-      const imageData = fs.readFileSync(absolutePath);
-      return imageData;
+      // Format messages for LLM context
+      return messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
     } catch (error) {
-      console.error(`Error reading image: ${error.message}`, error);
-      throw error;
+      console.error(`Error retrieving conversation history: ${error.message}`, error);
+      throw new Error(`Failed to retrieve conversation history: ${error.message}`);
     }
   }
 
   /**
-   * Process a message with an LLM and save response
-   * @param {Object} chatbot - The chatbot data
-   * @param {string} userId - The user ID
-   * @param {string} content - The message content
-   * @param {string} imagePath - Optional image path
-   * @param {Array} conversationHistory - Previous conversation messages
-   * @param {string} threadId - The conversation thread ID
-   * @returns {Promise<Object>} The assistant response
+   * Process a message and get a response from the AI
+   * @param {Object} chatbot - The chatbot object
+   * @param {string} userId - The ID of the user sending the message
+   * @param {string} messageContent - The message content
+   * @param {string} filePath - Path to an uploaded file (optional)
+   * @param {Array} conversationHistory - Previous messages in the conversation
+   * @param {string} threadId - The ID of the conversation thread
+   * @returns {Promise<Object>} - The response message
    */
-  static async processMessage(chatbot, userId, content, imagePath = null, conversationHistory = [], threadId) {
+  static async processMessage(chatbot, userId, messageContent, filePath, conversationHistory, threadId) {
     try {
-      console.log(`Processing message for chatbot with ID: ${chatbot._id}`);
-      console.log(`Thread ID: ${threadId}`);
-      console.log(`Image path: ${imagePath ? imagePath : 'No image'}`);
-      console.log(`Using provider: ${chatbot.provider}, model: ${chatbot.model}`);
-      console.log(`Conversation history: ${conversationHistory.length} messages`);
+      console.log(`Processing message for chatbot ${chatbot._id} from user ${userId}`);
 
-      // Make sure we have a valid threadId
-      if (!threadId || !mongoose.Types.ObjectId.isValid(threadId)) {
-        console.error(`Invalid thread ID: ${threadId}`);
-        throw new Error(`Invalid thread ID: ${threadId}`);
+      // Determine if we have an image or document
+      let fileType = null;
+      if (filePath) {
+        const mimetype = path.extname(filePath).toLowerCase();
+        fileType = mimetype.match(/\.(jpg|jpeg|png|gif)$/i) ? 'image' : 'document';
+        console.log(`File detected as ${fileType}: ${filePath}`);
       }
 
-      // Create user message
-      const userMessage = {
+      // Save the user message to the database
+      const userMessage = new Message({
         chatbotId: chatbot._id,
         threadId: threadId,
         userId: userId,
         role: 'user',
-        content: content || '',
-        image: imagePath || null
-      };
+        content: messageContent,
+        [fileType === 'image' ? 'image' : 'document']: filePath ? filePath : undefined
+      });
 
-      const savedUserMessage = await this.create(userMessage);
-      console.log(`Saved user message with ID: ${savedUserMessage._id}`);
+      await userMessage.save();
+      console.log(`Saved user message with ID: ${userMessage._id}`);
 
-      // Prepare message prompt
-      let prompt = content || '';
+      // Prepare the message for the AI
+      let aiPrompt = messageContent;
 
-      // If content is empty but there's an image, add a default prompt
-      if (!content && imagePath) {
-        prompt = "Please analyze this image and tell me what you see.";
-        console.log(`Using default prompt for image-only message: "${prompt}"`);
-      }
-
-      // Format history for LLM
-      let formattedHistory = [];
-      if (conversationHistory.length > 0) {
-        console.log(`Formatting ${conversationHistory.length} messages for LLM`);
-        formattedHistory = this.formatConversationHistoryForLLM(conversationHistory);
-        console.log(`Formatted ${formattedHistory.length} messages for conversation history`);
-      } else {
-        console.log(`No conversation history to format`);
-      }
-
-      // Import the LLMService
-      const LLMService = require('./llmService');
-
-      // Process with LLM including conversation history
-      console.log(`Sending request to LLM service with conversation history and image: ${imagePath ? 'Yes' : 'No'}`);
-      const assistantResponse = await LLMService.sendLLMRequestWithHistory(
+      // Send the message to the AI and get a response
+      const aiResponse = await sendLLMRequest(
         chatbot.provider,
         chatbot.model,
-        prompt,
-        formattedHistory,
-        imagePath  // Pass the image path to LLM service
+        aiPrompt,
+        conversationHistory,
+        filePath
       );
 
-      console.log(`Received response from LLM service: ${assistantResponse.substring(0, 100)}...`);
+      console.log(`Received AI response: ${aiResponse.substring(0, 50)}...`);
 
-      // Create assistant message
-      const assistantMessage = {
+      // Save the AI response to the database
+      const assistantMessage = new Message({
         chatbotId: chatbot._id,
         threadId: threadId,
         userId: userId,
         role: 'assistant',
-        content: assistantResponse,
-        image: null
-      };
+        content: aiResponse
+      });
 
-      const savedAssistantMessage = await this.create(assistantMessage);
-      console.log(`Saved assistant message with ID: ${savedAssistantMessage._id}`);
+      await assistantMessage.save();
+      console.log(`Saved assistant message with ID: ${assistantMessage._id}`);
 
-      // Update the thread's last message time
-      const ConversationThreadService = require('./conversationThreadService');
-      await ConversationThreadService.updateLastMessageTime(threadId);
-
-      return savedAssistantMessage;
+      // Return the assistant message
+      return assistantMessage;
     } catch (error) {
       console.error(`Error processing message: ${error.message}`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Format conversation history for LLM
-   * @param {Array} messages - Previous conversation messages
-   * @returns {Array} Formatted messages for LLM
-   */
-  static formatConversationHistoryForLLM(messages) {
-    try {
-      console.log(`Formatting ${messages.length} messages for LLM`);
-
-      const formattedMessages = messages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }));
-
-      // Log a sample of the formatted messages
-      if (formattedMessages.length > 0) {
-        console.log(`History sample (first ${Math.min(3, formattedMessages.length)} messages):`);
-        for (let i = 0; i < Math.min(3, formattedMessages.length); i++) {
-          console.log(`[${i}] Role: ${formattedMessages[i].role}, Content: ${formattedMessages[i].content.substring(0, 50)}...`);
-        }
-      }
-
-      return formattedMessages;
-    } catch (error) {
-      console.error(`Error formatting conversation history: ${error.message}`, error);
-      return [];
-    }
-  }
-
-  /**
-   * Get recent conversation history for a chatbot and thread
-   * @param {string} chatbotId - The chatbot ID
-   * @param {string} threadId - The thread ID
-   * @param {number} limit - Maximum number of messages to retrieve (default: 10)
-   * @returns {Promise<Array>} List of recent messages
-   */
-  static async getConversationHistory(chatbotId, threadId, limit = 10) {
-    try {
-      console.log(`Fetching conversation history for chatbot: ${chatbotId}, thread: ${threadId}, limit: ${limit}`);
-
-      // Make sure threadId is a valid ObjectId
-      if (!mongoose.Types.ObjectId.isValid(threadId)) {
-        console.error(`Invalid threadId: ${threadId}`);
-        throw new Error(`Invalid threadId: ${threadId}`);
-      }
-
-      const messages = await Message.find({ chatbotId, threadId })
-        .sort({ timestamp: -1 })
-        .limit(limit)
-        .sort({ timestamp: 1 });
-
-      console.log(`Retrieved ${messages.length} messages for conversation history with thread ${threadId}`);
-      return messages;
-    } catch (error) {
-      console.error(`Error fetching conversation history: ${error.message}`, error);
-      throw error;
+      throw new Error(`Failed to process message: ${error.message}`);
     }
   }
 }

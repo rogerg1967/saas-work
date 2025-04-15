@@ -7,7 +7,7 @@ const ConversationThreadService = require('../services/conversationThreadService
 const mongoose = require('mongoose');
 const { requireUser } = require('./middleware/auth');
 const { requireSubscription } = require('./middleware/subscriptionCheck');
-const { uploadSingleImage } = require('./middleware/upload');
+const { uploadFileMiddleware } = require('./middleware/upload');
 const { sendLLMRequest } = require('../services/llmService');
 
 // Get all chatbots for the user's organization or all chatbots for admin
@@ -273,7 +273,7 @@ router.get('/:id/conversation', requireUser, requireSubscription, async (req, re
  * @desc Send a message to a chatbot
  * @access Private
  */
-router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage, async (req, res) => {
+router.post('/:id/message', requireUser, requireSubscription, uploadFileMiddleware, async (req, res) => {
   try {
     console.log(`Processing message for chatbot ID: ${req.params.id}`);
     const userId = req.user._id;
@@ -283,21 +283,22 @@ router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage,
     console.log(`Received message request for chatbot ${req.params.id} from user ${userId}`);
     console.log(`Message content: ${message || '(empty)'}`);
     console.log(`Thread ID: ${threadId || 'Not provided'}`);
-    console.log(`Image attached: ${image ? 'Yes' : 'No'}`);
+    console.log(`File attached: ${image ? 'Yes' : 'No'}`);
     if (image) {
-      console.log(`Image details: ${JSON.stringify({
+      console.log(`File details: ${JSON.stringify({
         filename: image.originalname,
         mimetype: image.mimetype,
-        size: image.size
+        size: image.size,
+        fieldname: image.fieldname
       })}`);
     }
 
     // Validate input - require either message or image
     if (!message && !image) {
-      console.error('No message or image provided');
+      console.error('No message or file provided');
       return res.status(400).json({
         success: false,
-        error: 'Message or image is required'
+        error: 'Message or file is required'
       });
     }
 
@@ -324,12 +325,19 @@ router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage,
     }
 
     let imagePath = null;
+    let documentPath = null;
 
-    // Save image if it exists
+    // Save file if it exists
     if (image) {
-      console.log('Processing image upload');
-      imagePath = await MessageService.saveImage(image);
-      console.log(`Image saved at ${imagePath}`);
+      if (image.fieldname === 'image') {
+        console.log('Processing image upload');
+        imagePath = await MessageService.saveImage(image);
+        console.log(`Image saved at ${imagePath}`);
+      } else if (image.fieldname === 'document') {
+        console.log('Processing document upload');
+        documentPath = await MessageService.saveImage(image); // Reuse the same function for now
+        console.log(`Document saved at ${documentPath}`);
+      }
     }
 
     // Process message with conversation history
@@ -360,7 +368,7 @@ router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage,
           chatbot,
           userId,
           message || '',
-          imagePath,
+          imagePath || documentPath,
           conversationHistory,
           thread._id
         );
@@ -397,7 +405,7 @@ router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage,
           chatbot,
           userId,
           message || '',
-          imagePath,
+          imagePath || documentPath,
           conversationHistory,
           threadId
         );
@@ -422,7 +430,7 @@ router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage,
         chatbot,
         userId,
         message || '',
-        imagePath,
+        imagePath || documentPath,
         [],
         thread._id
       );

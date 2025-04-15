@@ -2,9 +2,9 @@ import api from './api';
 
 // Description: Send a message to a chatbot
 // Endpoint: POST /api/chatbots/:id/message
-// Request: { message: string, threadId?: string, image?: File }
+// Request: { message: string, threadId?: string, file?: File }
 // Response: { id: string, role: string, content: string, timestamp: string }
-export const sendMessage = async (chatbotId: string, message: string, image?: File, model?: string, threadId?: string) => {
+export const sendMessage = async (chatbotId: string, message: string, file?: File, model?: string, threadId?: string) => {
   try {
     const formData = new FormData();
     formData.append('message', message);
@@ -17,8 +17,15 @@ export const sendMessage = async (chatbotId: string, message: string, image?: Fi
       formData.append('threadId', threadId);
     }
 
-    if (image) {
-      formData.append('image', image);
+    if (file) {
+      // Determine if it's an image or document based on file type
+      const isImage = file.type.startsWith('image/');
+
+      if (isImage) {
+        formData.append('image', file);
+      } else {
+        formData.append('document', file);
+      }
     }
 
     const response = await api.post(`/api/chatbots/${chatbotId}/message`, formData, {
@@ -36,7 +43,7 @@ export const sendMessage = async (chatbotId: string, message: string, image?: Fi
 // Description: Get chat history for a thread
 // Endpoint: GET /api/threads/threads/:threadId/messages
 // Request: {}
-// Response: { messages: Array<{ id: string, role: string, content: string, timestamp: string, image?: string }> }
+// Response: { messages: Array<{ id: string, role: string, content: string, timestamp: string, image?: string, document?: string }> }
 export const getChatHistory = async (chatbotId: string, threadId?: string) => {
   try {
     // If threadId is provided, fetch messages from that thread
