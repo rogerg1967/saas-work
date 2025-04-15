@@ -49,18 +49,55 @@ class MessageService {
    * @returns {Promise<string>} - The path where the document was saved
    */
   static async saveDocument(file) {
-    // Currently this uses the same implementation as saveImage
-    // but we can customize it for documents in the future if needed
-    return this.saveImage(file);
+    try {
+      console.log(`Saving document: ${file.originalname}, size: ${file.size}, type: ${file.mimetype}`);
+
+      // If the file was already saved by multer (using diskStorage)
+      if (file.path) {
+        console.log(`Document already saved by multer at ${file.path}`);
+        return file.path;
+      }
+
+      // Create uploads directory if it doesn't exist
+      const uploadsDir = path.join(__dirname, '..', 'uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        console.log('Creating uploads directory');
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      // Generate a unique filename
+      const fileName = `${uuidv4()}-${file.originalname}`;
+      const filePath = path.join(uploadsDir, fileName);
+
+      // Write the file to disk
+      console.log(`Writing document to ${filePath}`);
+      await fs.promises.writeFile(filePath, file.buffer);
+
+      console.log(`Document saved successfully at ${filePath}`);
+      return filePath;
+    } catch (error) {
+      console.error(`Error saving document: ${error.message}`, error);
+      throw new Error(`Failed to save document: ${error.message}`);
+    }
   }
 
   /**
-   * Get the file type (image or document) based on MIME type
-   * @param {string} mimetype - The MIME type of the file
+   * Get the file type (image or document) based on MIME type or file extension
+   * @param {string} filePath - The path to the file or the MIME type
    * @returns {string} - Either 'image' or 'document'
    */
-  static getFileType(mimetype) {
-    if (mimetype.startsWith('image/')) {
+  static getFileType(filePath) {
+    // If it's a mimetype string
+    if (filePath.includes('/')) {
+      if (filePath.startsWith('image/')) {
+        return 'image';
+      }
+      return 'document';
+    }
+
+    // If it's a file path, check extension
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
       return 'image';
     }
     return 'document';
@@ -109,7 +146,10 @@ class MessageService {
       // Format messages for LLM context
       return messages.map(msg => ({
         role: msg.role,
-        content: msg.content
+        content: msg.content,
+        // Include image/document info if available
+        ...(msg.image && { image: msg.image }),
+        ...(msg.document && { document: msg.document })
       }));
     } catch (error) {
       console.error(`Error retrieving conversation history: ${error.message}`, error);
@@ -134,8 +174,7 @@ class MessageService {
       // Determine if we have an image or document
       let fileType = null;
       if (filePath) {
-        const mimetype = path.extname(filePath).toLowerCase();
-        fileType = mimetype.match(/\.(jpg|jpeg|png|gif)$/i) ? 'image' : 'document';
+        fileType = this.getFileType(filePath);
         console.log(`File detected as ${fileType}: ${filePath}`);
       }
 
@@ -145,15 +184,16 @@ class MessageService {
         threadId: threadId,
         userId: userId,
         role: 'user',
-        content: messageContent,
-        [fileType === 'image' ? 'image' : 'document']: filePath ? filePath : undefined
+        content: messageContent || 'Attached file',
+        image: fileType === 'image' ? filePath : null,
+        document: fileType === 'document' ? filePath : null
       });
 
       await userMessage.save();
       console.log(`Saved user message with ID: ${userMessage._id}`);
 
       // Prepare the message for the AI
-      let aiPrompt = messageContent;
+      let aiPrompt = messageContent || 'Please analyze the attached file.';
 
       // Send the message to the AI and get a response
       const aiResponse = await sendLLMRequest(
@@ -161,7 +201,8 @@ class MessageService {
         chatbot.model,
         aiPrompt,
         conversationHistory,
-        filePath
+        filePath,
+        fileType
       );
 
       console.log(`Received AI response: ${aiResponse.substring(0, 50)}...`);
@@ -183,6 +224,32 @@ class MessageService {
     } catch (error) {
       console.error(`Error processing message: ${error.message}`, error);
       throw new Error(`Failed to process message: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get messages by chatbot and thread
+   * @param {string} chatbotId - The ID of the chatbot
+   * @param {string} threadId - The ID of the conversation thread
+   * @returns {Promise<Array>} - Array of messages
+   */
+  static async getByChatbotAndThread(chatbotId, threadId) {
+    try {
+      console.log(`Fetching messages for chatbot ${chatbotId} and thread ${threadId}`);
+      const messages = await Message.getByChatbotAndThread(chatbotId, threadId);
+
+      // Format messages for the response
+      return messages.map(msg => ({
+        id: msg._id.toString(),
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
+        image: msg.image,
+        document: msg.document
+      }));
+    } catch (error) {
+      console.error(`Error fetching messages: ${error.message}`, error);
+      throw new Error(`Failed to fetch messages: ${error.message}`);
     }
   }
 }

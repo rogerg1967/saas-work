@@ -1,86 +1,89 @@
 # SaaS Work
 
-SaaS Work is a SaaS (Software as a Service) platform designed to provide UK GDPR compliant AI chatbots to organizations. Built using Vue.js and Tailwind CSS for the frontend and integrated with a MongoDB database, it ensures secure and efficient data handling. The platform's primary aim is to facilitate AI-powered customer interactions while maintaining strict adherence to GDPR guidelines.
+SaaS Work is a comprehensive SaaS platform designed to provide organizations with UK GDPR-compliant AI chatbots. Built using Vue.js and Tailwind CSS, the platform offers AI chatbot solutions that are dynamically updated with the latest models from providers like OpenAI. The primary goal is to deliver a professional and seamless user experience that encourages engagement from the first interaction, facilitated through detailed hero and pricing pages.
 
 ## Overview
 
-This project is structured into two main parts: the frontend and the backend.
+SaaS Work is built with a dual-architecture approach, separating the frontend and backend to ensure modularity and ease of development.
 
-1. **Frontend**: Developed using Vue.js with Tailwind CSS for styling, and integrated with the shadcn-ui component library. The frontend manages routing with react-router-dom and is organized under the `client/` directory, with pages and components broadly separated.
-    - **Main Port**: 5173
-    - **Key Folders**: `client/src/pages/`, `client/src/components/`
+### Architecture and Technologies
 
-2. **Backend**: Built using Express.js, providing RESTful API endpoints aggregated under the `api/` directory. It handles user authentication, subscription management, and chatbot functionalities, utilizing MongoDB for data storage and retrieval.
-    - **Main Port**: 3000
-    - **Key Folders**: `server/routes/`, `server/models/`, `server/services/`
+**Frontend:**
+- **Framework:** Vue.js
+- **Styling:** Tailwind CSS and shadcn-ui component library
+- **Routing:** Client-side routing with `react-router-dom`
+- **Development Tool:** Vite
 
-The application uses concurrently to run both the frontend and backend with a single npm command, ensuring a streamlined development process.
+**Backend:**
+- **Framework:** Express
+- **Database:** MongoDB with Mongoose
+- **Authentication:** Token-based authentication using JWT
+
+The frontend resides in the `client/` folder, utilizing Vite as the development server and running on port 5173. The backend, implemented with Express, is located in the `server/` folder and runs on port 3000. Both parts of the application can be started concurrently using the `npm run start` command.
 
 ## Features
 
-### General
-- Professional hero page with comprehensive platform information and integrated pricing section, encouraging clear user engagement and streamlined registration.
-- Role-based SaaS platform with roles including SAAS admin, organization manager, and team member.
-- Organizations can be added exclusively by SAAS admins; users request to join existing organizations upon registration.
-- Subscriptions managed through Stripe, with users redirected to payment upon registration and status updates synced with Stripe post-payment.
-- Chatbot models populated based on selected AI providers (e.g., OpenAI), regularly updated for current offerings.
-- Image analysis capabilities integrated with AI chatbots using large language models (LLMs).
-- Real-time updates for active users, reflecting actual user activities.
-- Management of user subscriptions, including views and actions concerning current subscriptions, suspension, and invoice access.
-- Proper JWT token expiration and refresh handling to ensure secure and undisrupted sessions.
+- **Role-Based Access Control:** The platform supports role-based access with different permissions for SAAS admins, organization managers, and users.
+- **AI Chatbots Management:** Users can create, edit, and delete chatbots, with conversation history and multi-thread support.
+- **Subscription Management:** Integration with Stripe for subscription payments, allowing users and admins to manage subscriptions, view invoices, and handle payment statuses.
+- **Real-Time Data:** The dashboard displays real-time active users, ensuring updated and relevant user activity data.
+- **AI Model Integration:** Dynamic AI model options based on selected providers, regularly updated via API integration with OpenAI.
+- **Secure Authentication:** Robust authentication and authorization mechanisms with JWT tokens, adhering to UK GDPR guidelines.
 
-### Admin Features
-- Manage organizations and users, including CRUD operations and user role reassignment.
-- View and manage user subscriptions, changing statuses and viewing subscription details.
-- Access to comprehensive logs, error handling, and improved error messaging for administrative actions.
-
-### User Features
-- Register and manage profiles, including password resetting and subscription management.
-- Edit and delete AI chatbot settings and manage multiple conversation threads, retaining session contexts for more meaningful interactions.
-- Update personal details and preferences conveniently from the user profile page.
-
-## Getting Started
+## Getting started
 
 ### Requirements
 
-To run this project, ensure your computer has the following:
-- Node.js (version 14.x or later)
-- npm (version 6.x or later)
-- MongoDB
+Ensure you have the following technologies installed on your computer:
+
+- **Node.js** (>=14.x)
+- **npm** (Node Package Manager)
+- **MongoDB** (Database)
 
 ### Quickstart
 
-1. **Clone Repository**:
-    ```sh
-    git clone https://github.com/yourusername/saas-work.git
-    ```
+1. **Clone the repository:**
 
-2. **Navigate to Project Directory**:
-    ```sh
-    cd saas-work
-    ```
+   ```sh
+   git clone <repository_url>
+   cd saas-work
+   ```
 
-3. **Install Dependencies**:
-    ```sh
-    npm install
-    ```
+2. **Install dependencies:**
 
-4. **Configure Environment Variables**:
-    Create a `.env` file in the root directory. Based on the provided configuration snippets, it should look like:
-    ```sh
-    PORT=3000
-    MONGODB_URI=mongodb://localhost:27017/yourdbname
-    JWT_SECRET=yourjwtsecret
-    JWT_REFRESH_SECRET=yourjwtrefreshsecret
-    ```
+   ```sh
+   npm install
+   ```
 
-5. **Run the Project**:
-    ```sh
-    npm run start
-    ```
+   This command will install all necessary dependencies in the root, client, and server folders.
 
-    Visit http://localhost:5173 for the frontend and http://localhost:3000/api for backend API endpoints.
+3. **Configure environment variables:**
+
+   Create a `.env` file in both the root, client, and server folders based on the provided `.env.example` file:
+
+   ```sh
+   cp .env.example .env
+   ```
+
+   Update the environment variables in the `.env` files with your MongoDB connection details and other necessary configurations.
+
+4. **Start the application:**
+
+   ```sh
+   npm run start
+   ```
+
+   This command will start both the frontend and backend concurrently.
+
+5. **Access the application:**
+
+   - Frontend: [http://localhost:5173](http://localhost:5173)
+   - Backend: [http://localhost:3000](http://localhost:3000)
 
 ### License
 
-The project is proprietary. © 2024. All rights reserved.
+The project is proprietary and not open source. 
+
+```plaintext
+Copyright (c) 2024.
+```

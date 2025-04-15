@@ -27,7 +27,11 @@ const messageSchema = new Schema({
     required: [true, 'Content is required']
   },
   image: {
-    type: String, // URL or base64 representation of the image
+    type: String, // URL or path to the image
+    default: null
+  },
+  document: {
+    type: String, // URL or path to the document
     default: null
   },
   timestamp: {
