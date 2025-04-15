@@ -1,0 +1,40 @@
+WillAssist WebApp
+High-Level Overview: Create a role-based web application for a will-writing company. The app will allow office staff upload transcriptions, to verify and manually enter client information extracted from audio transcriptions into the WillAssist system. The app should feature user authentication and role-based access control (admin, staff, and reviewers). The goal is to streamline data verification and manual entry while maintaining a secure audit trail of user actions.
+The app should be responsive and function smoothly on both desktop and mobile devices.
+Minimum Viable Product (MVP): The core functionalities include:
+1.	User Authentication & Role-Based Access Control:
+o	Implement JWT authentication for secure login.
+o	Role-based access control with three roles: Admin, Office Staff, and Reviewer.
+o	Each role should have access to specific features (Admin: full access, Staff: data verification, Reviewer: data review and approval).
+2.	Dashboard for Data Review:
+o	Admin users can view and manage users, review audit logs, and oversee transcription status.
+o	Office staff can view pending transcription data, verify it, and manually input the corrected data.
+o	Reviewers can approve or reject verified data.
+3.	Data Verification and Manual Entry:
+o	Office staff should have a form to review and manually input missing or incorrect data from transcriptions (client name, executor, beneficiaries, etc.).
+o	The form should validate fields to ensure required data is input correctly.
+4.	Audit Logs:
+o	Keep track of all actions performed by users (data verification, changes, approvals) for compliance purposes.
+External Integrations:
+•	No external API integration with WillAssist is possible at this time. The manual entry of data will be required.
+•	MongoDB will be used for storing users, transcriptions, and audit logs.
+•	Redis for session caching and performance optimization.
+Framework, Database and Hosting:
+•	The application is built using: 
+o	Node.js with Express, 
+o	EJS,
+o	Bootstrap
+•	The app will use a MongoDB database hosted on MongoDB Atlas.
+•	The project will be hosted on a Windows server.
+Authentication:
+•	The application will support multiple users with role-based access controls. Each user will authenticate via JWT, with roles dictating access to features.
+Documentation Requirements:
+1.	Include a README file with:
+o	A clear description of the technologies used (React.js, Node.js, Express.js, MongoDB, Redis).
+o	A comprehensive list of the app’s features.
+o	API endpoint descriptions for login, user management, data verification, and audit log access.
+o	Example CURL commands to test endpoints for integration purposes. 
+Other Considerations:
+•	The app must be responsive and fully optimized for mobile and desktop.
+•	Ensure security best practices, such as HTTPS for API calls, password hashing, and secure JWT handling.
+

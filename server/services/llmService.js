@@ -430,8 +430,203 @@ async function sendRequestToAnthropic(model, message, history = [], imagePath = 
   }
 }
 
-async function sendLLMRequest(provider, model, message, imagePath = null) {
-  return sendLLMRequestWithHistory(provider, model, message, [], imagePath);
+/**
+ * Send a request to an LLM with optional file attachment
+ * @param {string} provider - The AI provider (e.g., 'openai')
+ * @param {string} model - The model to use
+ * @param {string} prompt - The user's message
+ * @param {Array} history - Previous conversation history
+ * @param {string} filePath - Path to an uploaded file (optional)
+ * @param {string} fileType - Type of file ('image' or 'document')
+ * @returns {Promise<string>} - The AI's response
+ */
+async function sendLLMRequest(provider, model, prompt, history = [], filePath = null, fileType = null) {
+  console.log(`Sending request to ${provider} using model ${model}`);
+  console.log(`Prompt: ${prompt.substring(0, 50)}...`);
+  console.log(`File: ${filePath ? 'Yes' : 'No'}, Type: ${fileType || 'None'}`);
+
+  let retries = 0;
+  const maxRetries = 3;
+
+  while (retries < maxRetries) {
+    try {
+      // Get the LLM settings
+      const LLMSettingsService = require('./llmSettingsService');
+      const settings = await LLMSettingsService.getSettings();
+
+      // Initialize the appropriate client based on the provider
+      let response;
+
+      if (provider.toLowerCase() === 'openai') {
+        response = await processOpenAIRequest(model, prompt, history, filePath, fileType, settings);
+      } else if (provider.toLowerCase() === 'anthropic') {
+        response = await processAnthropicRequest(model, prompt, history, filePath, fileType, settings);
+      } else {
+        throw new Error(`Unsupported provider: ${provider}`);
+      }
+
+      console.log(`Successfully received response from ${provider}`);
+      return response;
+    } catch (error) {
+      retries++;
+      console.error(`Attempt ${retries}/${maxRetries} failed: ${error.message}`);
+
+      if (retries >= maxRetries) {
+        throw new Error(`Failed to get response after ${maxRetries} attempts: ${error.message}`);
+      }
+
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+    }
+  }
+}
+
+/**
+ * Process a request using OpenAI
+ * @param {string} model - The OpenAI model to use
+ * @param {string} prompt - The user's message
+ * @param {Array} history - Previous conversation history
+ * @param {string} filePath - Path to an uploaded file (optional)
+ * @param {string} fileType - Type of file ('image' or 'document')
+ * @param {Object} settings - LLM settings
+ * @returns {Promise<string>} - The AI's response
+ */
+async function processOpenAIRequest(model, prompt, history, filePath, fileType, settings) {
+  console.log(`Processing OpenAI request with model: ${model}`);
+
+  // For now, we'll mock the OpenAI response
+  // In a real implementation, this would use the OpenAI API client
+
+  // Mock different responses based on file type
+  if (filePath) {
+    if (fileType === 'image') {
+      console.log(`Processing image: ${filePath}`);
+      return mockImageAnalysisResponse(filePath, prompt);
+    } else if (fileType === 'document') {
+      console.log(`Processing document: ${filePath}`);
+      return mockDocumentAnalysisResponse(filePath, prompt);
+    }
+  }
+
+  // If no file, or unknown file type, just respond to the prompt
+  return mockTextResponse(prompt, history);
+}
+
+/**
+ * Process a request using Anthropic
+ * @param {string} model - The Anthropic model to use
+ * @param {string} prompt - The user's message
+ * @param {Array} history - Previous conversation history
+ * @param {string} filePath - Path to an uploaded file (optional)
+ * @param {string} fileType - Type of file ('image' or 'document')
+ * @param {Object} settings - LLM settings
+ * @returns {Promise<string>} - The AI's response
+ */
+async function processAnthropicRequest(model, prompt, history, filePath, fileType, settings) {
+  console.log(`Processing Anthropic request with model: ${model}`);
+
+  // For now, we'll mock the Anthropic response
+  // In a real implementation, this would use the Anthropic API client
+
+  // Mock different responses based on file type
+  if (filePath) {
+    if (fileType === 'image') {
+      console.log(`Processing image: ${filePath}`);
+      return mockImageAnalysisResponse(filePath, prompt);
+    } else if (fileType === 'document') {
+      console.log(`Processing document: ${filePath}`);
+      return mockDocumentAnalysisResponse(filePath, prompt);
+    }
+  }
+
+  // If no file, or unknown file type, just respond to the prompt
+  return mockTextResponse(prompt, history);
+}
+
+/**
+ * Mock response for image analysis
+ * @param {string} imagePath - Path to the image
+ * @param {string} prompt - The user's message
+ * @returns {string} - Mocked AI response
+ */
+function mockImageAnalysisResponse(imagePath, prompt) {
+  const fileName = imagePath.split('/').pop();
+
+  return `I've analyzed the image you uploaded (${fileName}).
+
+Based on what I can see, this appears to be [description of image content].
+${prompt ? `Regarding your question: "${prompt}", I can tell you that...` : ''}
+
+Is there anything specific about this image you'd like me to explain further?`;
+}
+
+/**
+ * Mock response for document analysis
+ * @param {string} documentPath - Path to the document
+ * @param {string} prompt - The user's message
+ * @returns {string} - Mocked AI response
+ */
+function mockDocumentAnalysisResponse(documentPath, prompt) {
+  const fileName = documentPath.split('/').pop();
+  const fileExtension = fileName.split('.').pop().toLowerCase();
+
+  let documentType = 'document';
+  switch (fileExtension) {
+    case 'pdf':
+      documentType = 'PDF document';
+      break;
+    case 'doc':
+    case 'docx':
+      documentType = 'Word document';
+      break;
+    case 'txt':
+      documentType = 'text file';
+      break;
+    case 'xls':
+    case 'xlsx':
+      documentType = 'Excel spreadsheet';
+      break;
+    case 'csv':
+      documentType = 'CSV file';
+      break;
+    case 'ppt':
+    case 'pptx':
+      documentType = 'PowerPoint presentation';
+      break;
+  }
+
+  return `I've analyzed the ${documentType} you uploaded (${fileName}).
+
+The document appears to contain information about [mock summary of document content].
+Key points from the document:
+1. [First key point]
+2. [Second key point]
+3. [Third key point]
+
+${prompt ? `Regarding your question: "${prompt}", based on the document content, I can tell you that...` : ''}
+
+Would you like me to focus on any specific part of this document?`;
+}
+
+/**
+ * Mock response for text-only prompts
+ * @param {string} prompt - The user's message
+ * @param {Array} history - Previous conversation history
+ * @returns {string} - Mocked AI response
+ */
+function mockTextResponse(prompt, history) {
+  // Check if there's any history
+  const hasHistory = history && history.length > 0;
+
+  if (hasHistory) {
+    return `Based on our conversation so far, I understand you're asking about "${prompt}".
+
+Here's my response taking into account our previous exchanges...`;
+  } else {
+    return `Thank you for your message: "${prompt}".
+
+Here's my response...`;
+  }
 }
 
 /**
