@@ -1,85 +1,86 @@
-```markdown
 # SaaS Work
 
-SaaS Work is a comprehensive Software as a Service (SaaS) platform designed to provide UK GDPR-compliant AI chatbots to organizations. Built using Vue.js and Tailwind CSS on the frontend, and Node.js with Express for the backend, the platform integrates various core features to enhance user experience and facilitate chatbot management. The primary aim is to offer a detailed and professional platform, emphasizing clear information, subscription management, and seamless interaction with AI services.
+SaaS Work is a SaaS (Software as a Service) platform designed to provide UK GDPR compliant AI chatbots to organizations. Built using Vue.js and Tailwind CSS for the frontend and integrated with a MongoDB database, it ensures secure and efficient data handling. The platform's primary aim is to facilitate AI-powered customer interactions while maintaining strict adherence to GDPR guidelines.
 
 ## Overview
 
-SaaS Work utilizes a two-part architecture consisting of a React-based frontend and an Express-based backend. The frontend is built using Vue.js and Tailwind CSS for a responsive and modern user interface, while the backend implements various REST API endpoints to handle user authentication, subscription management, and AI chatbot interactions. MongoDB is used as the primary database, managed through Mongoose, ensuring robust and scalable data handling. The project leverages JWT for authentication and Stripe for managing user subscriptions and payments.
+This project is structured into two main parts: the frontend and the backend.
 
-### Project Structure
+1. **Frontend**: Developed using Vue.js with Tailwind CSS for styling, and integrated with the shadcn-ui component library. The frontend manages routing with react-router-dom and is organized under the `client/` directory, with pages and components broadly separated.
+    - **Main Port**: 5173
+    - **Key Folders**: `client/src/pages/`, `client/src/components/`
 
-The project is organized into two main directories:
-- `client/`: Contains the frontend code, built with React.js using Vite for development and testing. It includes various components, pages, and API integration for handling UI logic and data fetching.
-- `server/`: Contains the backend code, which includes route definitions, middleware, services, and database models. It manages user authentication, subscription verification, and other core backend functionalities.
+2. **Backend**: Built using Express.js, providing RESTful API endpoints aggregated under the `api/` directory. It handles user authentication, subscription management, and chatbot functionalities, utilizing MongoDB for data storage and retrieval.
+    - **Main Port**: 3000
+    - **Key Folders**: `server/routes/`, `server/models/`, `server/services/`
+
+The application uses concurrently to run both the frontend and backend with a single npm command, ensuring a streamlined development process.
 
 ## Features
 
-- **AI Chatbots**: Provides an interface to create, edit, and delete AI chatbots, configure chatbot settings, and manage conversation threads.
-- **Subscription Management**: Users can manage their subscriptions, view current plans, suspend subscriptions, and access Stripe invoices.
-- **Role-Based Access Control**: Implements roles like SaaS Admin, Organization Manager, and Team Member to control access and permissions within the platform.
-- **GDPR Compliance**: Ensures data handling and privacy according to UK GDPR guidelines.
-- **Dynamic AI Integration**: Fetches and updates the latest models from AI providers like OpenAI, ensuring users have access to the most current AI capabilities.
-- **Error Handling**: Provides user-friendly error messages and robust error handling throughout the platform.
-- **Real-Time Data**: Updates the active users panel on the dashboard in real-time, reflecting current platform user activity.
-- **User Profile Management**: Allows users to update their personal details, manage profiles, and reset passwords securely.
+### General
+- Professional hero page with comprehensive platform information and integrated pricing section, encouraging clear user engagement and streamlined registration.
+- Role-based SaaS platform with roles including SAAS admin, organization manager, and team member.
+- Organizations can be added exclusively by SAAS admins; users request to join existing organizations upon registration.
+- Subscriptions managed through Stripe, with users redirected to payment upon registration and status updates synced with Stripe post-payment.
+- Chatbot models populated based on selected AI providers (e.g., OpenAI), regularly updated for current offerings.
+- Image analysis capabilities integrated with AI chatbots using large language models (LLMs).
+- Real-time updates for active users, reflecting actual user activities.
+- Management of user subscriptions, including views and actions concerning current subscriptions, suspension, and invoice access.
+- Proper JWT token expiration and refresh handling to ensure secure and undisrupted sessions.
+
+### Admin Features
+- Manage organizations and users, including CRUD operations and user role reassignment.
+- View and manage user subscriptions, changing statuses and viewing subscription details.
+- Access to comprehensive logs, error handling, and improved error messaging for administrative actions.
+
+### User Features
+- Register and manage profiles, including password resetting and subscription management.
+- Edit and delete AI chatbot settings and manage multiple conversation threads, retaining session contexts for more meaningful interactions.
+- Update personal details and preferences conveniently from the user profile page.
 
 ## Getting Started
 
 ### Requirements
 
-Ensure the following technologies/setup are installed on your computer:
-
-- Node.js (v14 or higher)
-- npm (Node Package Manager)
-- MongoDB (local or remote instance)
-- Stripe account for managing subscription payments
+To run this project, ensure your computer has the following:
+- Node.js (version 14.x or later)
+- npm (version 6.x or later)
+- MongoDB
 
 ### Quickstart
 
-1. **Clone the Repository**:
-   ```shell
-   git clone https://github.com/yourusername/saas-work.git
-   cd saas-work
-   ```
+1. **Clone Repository**:
+    ```sh
+    git clone https://github.com/yourusername/saas-work.git
+    ```
 
-2. **Install Dependencies**:
-   ```shell
-   npm install
-   ```
+2. **Navigate to Project Directory**:
+    ```sh
+    cd saas-work
+    ```
 
-3. **Set Up Environment Variables**:
-   Create a `.env` file in both the `client/` and `server/` directories with the necessary environment variables. Example:
+3. **Install Dependencies**:
+    ```sh
+    npm install
+    ```
 
-   For `server/.env`:
-   ```dotenv
-   PORT=3000
-   MONGODB_URI=mongodb://localhost:27017/saaswork
-   JWT_SECRET=your_jwt_secret
-   JWT_REFRESH_SECRET=your_refresh_jwt_secret
-   STRIPE_SECRET_KEY=your_stripe_secret_key
-   STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
-   ```
+4. **Configure Environment Variables**:
+    Create a `.env` file in the root directory. Based on the provided configuration snippets, it should look like:
+    ```sh
+    PORT=3000
+    MONGODB_URI=mongodb://localhost:27017/yourdbname
+    JWT_SECRET=yourjwtsecret
+    JWT_REFRESH_SECRET=yourjwtrefreshsecret
+    ```
 
-   For `client/.env`:
-   ```dotenv
-   VITE_API_BASE_URL=http://localhost:3000/api
-   VITE_STRIPE_PUBLIC_KEY=your_stripe_public_key
-   ```
+5. **Run the Project**:
+    ```sh
+    npm run start
+    ```
 
-4. **Start the Application**:
-   ```shell
-   npm run start
-   ```
-
-   This command runs both the client and server simultaneously using `concurrently`.
-
-5. **Access the Application**:
-   Open your browser and navigate to `http://localhost:5173` to interact with the frontend.
+    Visit http://localhost:5173 for the frontend and http://localhost:3000/api for backend API endpoints.
 
 ### License
 
-This project is proprietary and not open source. Copyright (c) 2024.
-```
-
-This README.md file provides a comprehensive yet concise overview of the SaaS Work project, explaining its architecture, key features, and setup instructions. This should serve as a helpful guide for developers and users to understand and get started with the application.
+The project is proprietary. © 2024. All rights reserved.
