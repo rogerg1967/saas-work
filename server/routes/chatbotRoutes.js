@@ -3,6 +3,8 @@ const router = express.Router();
 const ChatbotService = require('../services/chatbotService');
 const MessageService = require('../services/messageService');
 const AIModelService = require('../services/aiModelService');
+const ConversationThreadService = require('../services/conversationThreadService');
+const mongoose = require('mongoose');
 const { requireUser } = require('./middleware/auth');
 const { requireSubscription } = require('./middleware/subscriptionCheck');
 const { uploadSingleImage } = require('./middleware/upload');
@@ -221,45 +223,48 @@ router.delete('/:id', requireUser, requireSubscription, async (req, res) => {
   }
 });
 
-// Get chat conversation for a chatbot
+// Get conversation for a chatbot (legacy endpoint for backward compatibility)
 router.get('/:id/conversation', requireUser, requireSubscription, async (req, res) => {
   try {
-    console.log(`Fetching conversation for chatbot with ID: ${req.params.id}`);
-    const chatbot = await ChatbotService.getById(req.params.id);
+    const { id } = req.params;
+    const userId = req.user._id;
 
-    if (!chatbot) {
-      console.log(`Chatbot with ID ${req.params.id} not found`);
-      return res.status(404).json({ error: 'Chatbot not found' });
+    console.log(`Fetching conversation for chatbot: ${id}`);
+
+    // Get or create default thread for this user and chatbot
+    const thread = await ConversationThreadService.getOrCreateDefault(id, userId);
+    console.log(`Using thread with ID: ${thread._id}`);
+
+    // Get the messages for this chatbot and thread
+    try {
+      const messages = await MessageService.getByChatbotAndThread(id, thread._id);
+
+      // Format messages for the response
+      const formattedMessages = messages.map(msg => ({
+        id: msg._id.toString(),
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp.toISOString(),
+        image: msg.image
+      }));
+
+      res.json({
+        success: true,
+        messages: formattedMessages
+      });
+    } catch (error) {
+      console.error(`Error fetching conversation: ${error.message}`, error);
+      res.status(500).json({
+        success: false,
+        error: `Failed to fetch conversation: ${error.message}`
+      });
     }
-
-    // Skip organization check for admin users
-    if (req.user.role !== 'admin') {
-      // Verify the chatbot belongs to the user's organization
-      if (chatbot.organizationId.toString() !== req.user.organizationId.toString()) {
-        console.warn(`User from organization ${req.user.organizationId} attempted to access chatbot from organization ${chatbot.organizationId}`);
-        return res.status(403).json({ error: 'You do not have permission to access this chatbot' });
-      }
-    } else {
-      console.log(`Admin user accessing chatbot from organization ${chatbot.organizationId}`);
-    }
-
-    // Fetch messages from database
-    const messages = await MessageService.getByChatbot(req.params.id);
-
-    // Transform to expected format
-    const formattedMessages = messages.map(msg => ({
-      id: msg._id.toString(),
-      role: msg.role,
-      content: msg.content,
-      timestamp: msg.timestamp.toISOString(),
-      image: msg.image
-    }));
-
-    console.log(`Successfully retrieved ${formattedMessages.length} messages for chatbot: ${chatbot.name}`);
-    res.json({ messages: formattedMessages });
   } catch (error) {
     console.error(`Error fetching conversation: ${error.message}`, error);
-    res.status(500).json({ error: `Failed to fetch conversation: ${error.message}` });
+    res.status(500).json({
+      success: false,
+      error: `Failed to fetch conversation: ${error.message}`
+    });
   }
 });
 
@@ -272,11 +277,12 @@ router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage,
   try {
     console.log(`Processing message for chatbot ID: ${req.params.id}`);
     const userId = req.user._id;
-    const { message } = req.body;
+    const { message, threadId } = req.body;
     const image = req.file;
 
     console.log(`Received message request for chatbot ${req.params.id} from user ${userId}`);
     console.log(`Message content: ${message || '(empty)'}`);
+    console.log(`Thread ID: ${threadId || 'Not provided'}`);
     console.log(`Image attached: ${image ? 'Yes' : 'No'}`);
     if (image) {
       console.log(`Image details: ${JSON.stringify({
@@ -334,28 +340,102 @@ router.post('/:id/message', requireUser, requireSubscription, uploadSingleImage,
     if (chatbot.historyEnabled !== false) {
       const historyLimit = chatbot.historyLimit || 10; // Default to 10 if not specified
       console.log(`Fetching conversation history with limit: ${historyLimit}`);
-      conversationHistory = await MessageService.getConversationHistory(chatbot._id, historyLimit);
-      console.log(`Retrieved ${conversationHistory.length} messages for conversation history`);
+
+      // Make sure we have a valid threadId
+      if (!threadId) {
+        // Get or create default thread
+        const thread = await ConversationThreadService.getOrCreateDefault(chatbot._id, userId);
+        console.log(`Using default thread with ID: ${thread._id}`);
+
+        try {
+          conversationHistory = await MessageService.getConversationHistory(chatbot._id, thread._id, historyLimit);
+          console.log(`Retrieved ${conversationHistory.length} messages for conversation history`);
+        } catch (error) {
+          console.error(`Error fetching conversation history: ${error.message}`, error);
+          // Continue without history if there's an error
+          conversationHistory = [];
+        }
+
+        const response = await MessageService.processMessage(
+          chatbot,
+          userId,
+          message || '',
+          imagePath,
+          conversationHistory,
+          thread._id
+        );
+
+        console.log(`Successfully processed message, response ID: ${response._id}`);
+        res.json({
+          success: true,
+          id: response._id,
+          role: response.role,
+          content: response.content,
+          timestamp: response.timestamp
+        });
+      } else {
+        // Validate threadId is a valid ObjectId
+        if (!mongoose.Types.ObjectId.isValid(threadId)) {
+          console.error(`Invalid threadId: ${threadId}`);
+          return res.status(400).json({
+            success: false,
+            error: `Invalid threadId: ${threadId}`
+          });
+        }
+
+        // Use the provided threadId
+        try {
+          conversationHistory = await MessageService.getConversationHistory(chatbot._id, threadId, historyLimit);
+          console.log(`Retrieved ${conversationHistory.length} messages for conversation history with thread ${threadId}`);
+        } catch (error) {
+          console.error(`Error fetching conversation history: ${error.message}`, error);
+          // Continue without history if there's an error
+          conversationHistory = [];
+        }
+
+        const response = await MessageService.processMessage(
+          chatbot,
+          userId,
+          message || '',
+          imagePath,
+          conversationHistory,
+          threadId
+        );
+
+        console.log(`Successfully processed message, response ID: ${response._id}`);
+        res.json({
+          success: true,
+          id: response._id,
+          role: response.role,
+          content: response.content,
+          timestamp: response.timestamp
+        });
+      }
     } else {
       console.log('Conversation history is disabled for this chatbot');
+
+      // Get or create default thread
+      const thread = await ConversationThreadService.getOrCreateDefault(chatbot._id, userId);
+      console.log(`Using default thread with ID: ${thread._id}`);
+
+      const response = await MessageService.processMessage(
+        chatbot,
+        userId,
+        message || '',
+        imagePath,
+        [],
+        thread._id
+      );
+
+      console.log(`Successfully processed message, response ID: ${response._id}`);
+      res.json({
+        success: true,
+        id: response._id,
+        role: response.role,
+        content: response.content,
+        timestamp: response.timestamp
+      });
     }
-
-    const response = await MessageService.processMessage(
-      chatbot,
-      message || '',
-      userId,
-      imagePath,
-      conversationHistory
-    );
-
-    console.log(`Successfully processed message, response ID: ${response._id}`);
-    res.json({
-      success: true,
-      id: response._id,
-      role: response.role,
-      content: response.content,
-      timestamp: response.timestamp
-    });
   } catch (error) {
     console.error(`Error processing message: ${error.message}`, error);
     res.status(500).json({

@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const ConversationThreadService = require('../services/conversationThreadService');
 const MessageService = require('../services/messageService');
+const Message = require('../models/Message');
 const { requireUser } = require('./middleware/auth');
 const { requireSubscription } = require('./middleware/subscriptionCheck');
 
@@ -232,7 +234,8 @@ router.get('/threads/:threadId/messages', requireUser, requireSubscription, asyn
       });
     }
 
-    const messages = await MessageService.getByThread(thread.chatbotId, threadId);
+    // Get messages for this thread
+    const messages = await Message.find({ threadId }).sort({ timestamp: 1 });
 
     // Transform to expected format
     const formattedMessages = messages.map(msg => ({
@@ -240,8 +243,10 @@ router.get('/threads/:threadId/messages', requireUser, requireSubscription, asyn
       role: msg.role,
       content: msg.content,
       timestamp: msg.timestamp.toISOString(),
-      image: msg.image
+      image: msg.image // Make sure the image field is included in the response
     }));
+
+    console.log(`Found ${messages.length} messages for thread ${threadId}`);
 
     res.json({
       success: true,

@@ -135,28 +135,57 @@ async function getAnthropicClient() {
  */
 async function imageToBase64(imagePath) {
   try {
-    // Handle relative paths by making them absolute
-    const absolutePath = path.resolve(
-      imagePath.startsWith('/') ? path.join(__dirname, '..', imagePath) : path.join(__dirname, '../..', imagePath)
-    );
+    // Check if the path is a URL (starts with http:// or https://)
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      // Extract the filename from the URL
+      const urlParts = imagePath.split('/');
+      const filename = urlParts[urlParts.length - 1];
 
-    console.log(`Reading image from absolute path: ${absolutePath}`);
+      // Construct the local path to the file in the uploads directory
+      const localPath = path.join(__dirname, '..', 'uploads', filename);
 
-    // Check if file exists
-    if (!fs.existsSync(absolutePath)) {
-      console.error(`Image file not found at path: ${absolutePath}`);
-      throw new Error(`Image file not found at path: ${absolutePath}`);
+      console.log(`Image path is a URL. Extracted filename: ${filename}`);
+      console.log(`Looking for file at local path: ${localPath}`);
+
+      // Check if file exists at the local path
+      if (!fs.existsSync(localPath)) {
+        console.error(`Image file not found at local path: ${localPath}`);
+        throw new Error(`Image file not found at local path: ${localPath}`);
+      }
+
+      // Read the file as a buffer
+      const imageBuffer = await fs.promises.readFile(localPath);
+      console.log(`Successfully read image file from local path, size: ${imageBuffer.length} bytes`);
+
+      // Convert to base64
+      const base64Image = imageBuffer.toString('base64');
+      console.log(`Successfully converted image to base64, length: ${base64Image.length}`);
+
+      return base64Image;
+    } else {
+      // Handle relative paths by making them absolute (original code)
+      const absolutePath = path.resolve(
+        imagePath.startsWith('/') ? path.join(__dirname, '..', imagePath) : path.join(__dirname, '../..', imagePath)
+      );
+
+      console.log(`Reading image from absolute path: ${absolutePath}`);
+
+      // Check if file exists
+      if (!fs.existsSync(absolutePath)) {
+        console.error(`Image file not found at path: ${absolutePath}`);
+        throw new Error(`Image file not found at path: ${absolutePath}`);
+      }
+
+      // Read the file as a buffer
+      const imageBuffer = await fs.promises.readFile(absolutePath);
+      console.log(`Successfully read image file, size: ${imageBuffer.length} bytes`);
+
+      // Convert to base64
+      const base64Image = imageBuffer.toString('base64');
+      console.log(`Successfully converted image to base64, length: ${base64Image.length}`);
+
+      return base64Image;
     }
-
-    // Read the file as a buffer
-    const imageBuffer = await fs.promises.readFile(absolutePath);
-    console.log(`Successfully read image file, size: ${imageBuffer.length} bytes`);
-
-    // Convert to base64
-    const base64Image = imageBuffer.toString('base64');
-    console.log(`Successfully converted image to base64, length: ${base64Image.length}`);
-
-    return base64Image;
   } catch (error) {
     console.error(`Error converting image to base64: ${error.message}`);
     throw error;

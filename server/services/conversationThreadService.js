@@ -1,5 +1,6 @@
 const ConversationThread = require('../models/ConversationThread');
 const Message = require('../models/Message');
+const mongoose = require('mongoose');
 
 class ConversationThreadService {
   /**
